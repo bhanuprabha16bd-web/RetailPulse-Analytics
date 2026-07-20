@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum, Float, Boolean
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum, Float, Boolean, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -29,6 +29,7 @@ class Company(Base):
     users = relationship("User", back_populates="company")
     stores = relationship("Store", back_populates="company")
     products = relationship("Product", back_populates="company")
+    categories = relationship("Category", back_populates="company")
     sales = relationship("SaleTransaction", back_populates="company")
     audit_logs = relationship("AuditLog", back_populates="company")
 
@@ -67,6 +68,7 @@ class AuditLog(Base):
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     action = Column(String)
+    target_name = Column(String, nullable=True)
     ip_address = Column(String, nullable=True)
     browser = Column(String, nullable=True)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
@@ -89,17 +91,45 @@ class Store(Base):
 
 class Product(Base):
     __tablename__ = "products"
+    __table_args__ = (
+        UniqueConstraint("company_id", "sku", name="uq_products_company_sku"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
-    sku = Column(String, index=True)
-    name = Column(String, index=True)
-    category = Column(String, index=True)
-    price = Column(Float)
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=False, index=True)
+    sku = Column(String, nullable=False, index=True)
+    name = Column(String, nullable=False, index=True)
+    brand = Column(String, nullable=True, index=True)
+    description = Column(String, nullable=True)
+    unit_price = Column(Float, nullable=False)
+    cost_price = Column(Float, nullable=True)
+    stock_quantity = Column(Integer, default=0, nullable=False)
+    unit_of_measure = Column(String, default="Unit", nullable=False)
+    status = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     company = relationship("Company", back_populates="products")
+    category = relationship("Category", back_populates="products")
     sales = relationship("SaleTransaction", back_populates="product")
+
+class Category(Base):
+    __tablename__ = "categories"
+    __table_args__ = (
+        UniqueConstraint("company_id", "name", name="uq_categories_company_name"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    name = Column(String, nullable=False, index=True)
+    description = Column(String, nullable=True)
+    status = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    company = relationship("Company", back_populates="categories")
+    products = relationship("Product", back_populates="category")
 
 class SaleTransaction(Base):
     __tablename__ = "sale_transactions"

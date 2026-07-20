@@ -5,6 +5,7 @@ import { axiosPrivate } from '../api/axios';
 interface AuditLog {
   id: number;
   action: string;
+  targetName?: string | null;
   ip_address?: string | null;
   browser?: string | null;
   timestamp: string;
@@ -35,7 +36,7 @@ const AuditLogs = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Timestamp</TableCell><TableCell>Action</TableCell><TableCell>Company</TableCell>
+                <TableCell>Timestamp</TableCell><TableCell>Action</TableCell><TableCell>Target</TableCell><TableCell>Company</TableCell>
                 <TableCell>User</TableCell><TableCell>IP Address</TableCell><TableCell>Browser</TableCell>
               </TableRow>
             </TableHead>
@@ -43,12 +44,12 @@ const AuditLogs = () => {
               {logs.map((log) => (
                 <TableRow key={log.id}>
                   <TableCell>{new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(log.timestamp))}</TableCell>
-                  <TableCell>{log.action}</TableCell><TableCell>{log.company?.name ?? '—'}</TableCell>
+                  <TableCell>{log.action}</TableCell><TableCell>{log.targetName ?? '—'}</TableCell><TableCell>{log.company?.name ?? '—'}</TableCell>
                   <TableCell>{log.user ? `${log.user.name} (${log.user.email})` : '—'}</TableCell>
                   <TableCell>{log.ip_address ?? '—'}</TableCell><TableCell sx={{ maxWidth: 260, wordBreak: 'break-word' }}>{log.browser ?? '—'}</TableCell>
                 </TableRow>
               ))}
-              {!logs.length && <TableRow><TableCell colSpan={6} align="center">No audit activity recorded yet.</TableCell></TableRow>}
+              {!logs.length && <TableRow><TableCell colSpan={7} align="center">No audit activity recorded yet.</TableCell></TableRow>}
             </TableBody>
           </Table>
         </TableContainer>

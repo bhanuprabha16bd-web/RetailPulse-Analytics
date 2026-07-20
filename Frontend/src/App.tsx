@@ -11,6 +11,8 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import AuditLogs from './pages/AuditLogs';
+import Categories from './pages/Categories';
+import Products from './pages/Products';
 
 const queryClient = new QueryClient();
 
@@ -29,7 +31,8 @@ function App() {
               <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/stores" element={<div>Stores Page Placeholder</div>} />
-                <Route path="/products" element={<div>Products Page Placeholder</div>} />
+                <Route path="/products" element={<Products />} />
+                <Route path="/categories" element={<Categories />} />
                 <Route path="/analytics" element={<div>Analytics Page Placeholder</div>} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/audit-logs" element={<AuditLogs />} />

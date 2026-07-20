@@ -68,6 +68,102 @@ def migrate_role_schema():
             "ALTER TYPE roleenum ADD VALUE IF NOT EXISTS 'Company Owner'"
         ))
 
+
+def migrate_product_schema():
+    """Add product master-data fields to installations created before products expanded."""
+    inspector = inspect(engine)
+    if "products" not in inspector.get_table_names():
+        return
+    columns = {column["name"] for column in inspector.get_columns("products")}
+    additions = {
+        "brand": "VARCHAR",
+        "description": "VARCHAR",
+        "cost_price": "FLOAT",
+        "initial_stock_quantity": "INTEGER DEFAULT 0",
+        "unit_of_measure": "VARCHAR DEFAULT 'Unit'",
+        "is_active": "BOOLEAN DEFAULT 1",
+    }
+    with engine.begin() as connection:
+        for name, definition in additions.items():
+            if name not in columns:
+                connection.execute(text(f"ALTER TABLE products ADD COLUMN {name} {definition}"))
+
+        # Product identifiers are tenant-local: two companies may use the same
+        # SKU, while a company cannot accidentally create it twice.
+        connection.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_products_company_sku "
+            "ON products (company_id, sku)"
+        ))
+
+
+def migrate_category_schema():
+    """Enforce category-name uniqueness within, never across, tenants."""
+    inspector = inspect(engine)
+    if "categories" not in inspector.get_table_names():
+        return
+
+    with engine.begin() as connection:
+        connection.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_categories_company_name "
+            "ON categories (company_id, name)"
+        ))
+
+def migrate_schema_v2():
+    """Migrate categories and products to updated schema (v2)."""
+    inspector = inspect(engine)
+    
+    with engine.begin() as connection:
+        if "categories" in inspector.get_table_names():
+            columns = {column["name"] for column in inspector.get_columns("categories")}
+            if "is_active" in columns and "status" not in columns:
+                connection.execute(text("ALTER TABLE categories RENAME COLUMN is_active TO status"))
+            if "updated_at" not in columns:
+                connection.execute(text("ALTER TABLE categories ADD COLUMN updated_at DATETIME"))
+        
+        if "products" in inspector.get_table_names():
+            columns = {column["name"] for column in inspector.get_columns("products")}
+            if "is_active" in columns and "status" not in columns:
+                connection.execute(text("ALTER TABLE products RENAME COLUMN is_active TO status"))
+            if "initial_stock_quantity" in columns and "stock_quantity" not in columns:
+                connection.execute(text("ALTER TABLE products RENAME COLUMN initial_stock_quantity TO stock_quantity"))
+            if "price" in columns and "unit_price" not in columns:
+                connection.execute(text("ALTER TABLE products RENAME COLUMN price TO unit_price"))
+            if "updated_at" not in columns:
+                connection.execute(text("ALTER TABLE products ADD COLUMN updated_at DATETIME"))
+            if "category_id" not in columns:
+                connection.execute(text("ALTER TABLE products ADD COLUMN category_id INTEGER"))
+                connection.execute(text("""
+                    UPDATE products
+                    SET category_id = (
+                        SELECT id FROM categories 
+                        WHERE categories.name = products.category 
+                          AND categories.company_id = products.company_id
+                    )
+                """))
+                if "category" in columns:
+                    connection.execute(text("ALTER TABLE products DROP COLUMN category"))
+
+def migrate_audit_schema():
+    """Add target_name to audit_logs and backfill data."""
+    inspector = inspect(engine)
+    if "audit_logs" not in inspector.get_table_names():
+        return
+        
+    columns = {column["name"] for column in inspector.get_columns("audit_logs")}
+    with engine.begin() as connection:
+        if "target_name" not in columns:
+            connection.execute(text("ALTER TABLE audit_logs ADD COLUMN target_name VARCHAR"))
+            
+            # Backfill existing data
+            # Format is usually "Action: Target"
+            # For example: "Product Created: iPhone"
+            connection.execute(text("""
+                UPDATE audit_logs 
+                SET target_name = TRIM(SUBSTR(action, INSTR(action, ':') + 1)),
+                    action = TRIM(SUBSTR(action, 1, INSTR(action, ':') - 1))
+                WHERE action LIKE '%: %'
+            """))
+
 def get_db():
     db = SessionLocal()
     try:

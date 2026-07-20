@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Box, Typography, Paper, Grid, Card, CardContent } from '@mui/material';
 import { XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, AreaChart, Area } from 'recharts';
-import { TrendingUp, Store as StoreIcon, Inventory as InventoryIcon, AttachMoney } from '@mui/icons-material';
+import { TrendingUp, Store as StoreIcon, Inventory as InventoryIcon, AttachMoney, Category as CategoryIcon } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { axiosPrivate } from '../api/axios';
 
 interface Store { is_active: boolean }
-interface Sale { total_amount: number; timestamp: string; product?: { category: string } | null }
+interface Product { status: boolean }
+interface Category { id: number; name: string }
+interface Sale { total_amount: number; timestamp: string; product?: { categoryId: number } | null }
 
 const StatCard = ({ title, value, icon }: { title: string; value: string; icon: React.ReactNode }) => (
   <Card sx={{ height: '100%' }}>
@@ -24,16 +26,18 @@ const StatCard = ({ title, value, icon }: { title: string; value: string; icon: 
 const Dashboard = () => {
   const { user } = useAuth();
   const [stores, setStores] = useState<Store[]>([]);
-  const [products, setProducts] = useState<unknown[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([axiosPrivate.get('/stores/'), axiosPrivate.get('/products/'), axiosPrivate.get('/sales/')])
-      .then(([storesResponse, productsResponse, salesResponse]) => {
+    Promise.all([axiosPrivate.get('/stores/'), axiosPrivate.get('/products/'), axiosPrivate.get('/sales/'), axiosPrivate.get('/categories/')])
+      .then(([storesResponse, productsResponse, salesResponse, categoriesResponse]) => {
         setStores(storesResponse.data);
         setProducts(productsResponse.data);
         setSales(salesResponse.data);
+        setCategories(categoriesResponse.data);
       })
       .catch(() => setError('Unable to load dashboard data.'));
   }, []);
@@ -50,10 +54,11 @@ const Dashboard = () => {
     };
     return days;
   }, {})).slice(-7);
-  const salesByCategory = Object.values(sales.reduce<Record<string, { name: string; value: number }>>((categories, sale) => {
-    const name = sale.product?.category || 'Uncategorized';
-    categories[name] = { name, value: (categories[name]?.value ?? 0) + sale.total_amount };
-    return categories;
+  const salesByCategory = Object.values(sales.reduce<Record<string, { name: string; value: number }>>((acc, sale) => {
+    const categoryId = sale.product?.categoryId;
+    const categoryName = categoryId ? categories.find(c => c.id === categoryId)?.name || 'Unknown' : 'Uncategorized';
+    acc[categoryName] = { name: categoryName, value: (acc[categoryName]?.value ?? 0) + sale.total_amount };
+    return acc;
   }, {}));
   const currency = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'INR' });
 
@@ -68,7 +73,10 @@ const Dashboard = () => {
         <Grid size={{ xs: 12, sm: 6, md: 3 }}><StatCard title="TOTAL REVENUE" value={currency.format(totalRevenue)} icon={<AttachMoney />} /></Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}><StatCard title="SALES" value={String(sales.length)} icon={<TrendingUp />} /></Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}><StatCard title="ACTIVE STORES" value={String(stores.filter((store) => store.is_active).length)} icon={<StoreIcon />} /></Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}><StatCard title="PRODUCTS" value={String(products.length)} icon={<InventoryIcon />} /></Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}><StatCard title="TOTAL CATEGORIES" value={String(categories.length)} icon={<CategoryIcon />} /></Grid>
+        <Grid size={{ xs: 12, sm: 4 }}><StatCard title="TOTAL PRODUCTS" value={String(products.length)} icon={<InventoryIcon />} /></Grid>
+        <Grid size={{ xs: 12, sm: 4 }}><StatCard title="ACTIVE PRODUCTS" value={String(products.filter(p => p.status).length)} icon={<InventoryIcon />} /></Grid>
+        <Grid size={{ xs: 12, sm: 4 }}><StatCard title="INACTIVE PRODUCTS" value={String(products.filter(p => !p.status).length)} icon={<InventoryIcon />} /></Grid>
       </Grid>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}

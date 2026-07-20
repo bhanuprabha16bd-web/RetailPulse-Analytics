@@ -13,7 +13,8 @@ import {
     BarChart as AnalyticsIcon,
     Settings as SettingsIcon,
     AccountCircle,
-    History as HistoryIcon
+    History as HistoryIcon,
+    Category as CategoryIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
@@ -22,7 +23,8 @@ const drawerWidth = 240;
 const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
     { text: 'Stores', icon: <StoreIcon />, path: '/stores' },
-    { text: 'Products', icon: <InventoryIcon />, path: '/products' },
+    { text: 'Products', icon: <InventoryIcon />, path: '/products', adminOnly: true },
+    { text: 'Categories', icon: <CategoryIcon />, path: '/categories', adminOnly: true },
     { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
     { text: 'Audit Logs', icon: <HistoryIcon />, path: '/audit-logs', auditOnly: true },
@@ -63,7 +65,7 @@ const Layout = () => {
             </Toolbar>
             <Divider />
             <List>
-                {menuItems.filter((item) => !item.auditOnly || hasAuditAccess).map((item) => (
+                {menuItems.filter((item) => (!item.auditOnly || hasAuditAccess) && (!item.adminOnly || hasAuditAccess)).map((item) => (
                     <ListItem key={item.text} disablePadding>
                         <ListItemButton 
                             selected={location.pathname === item.path}

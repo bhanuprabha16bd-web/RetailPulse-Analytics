@@ -27,6 +27,8 @@ def create_sale(sale: schemas.SaleTransactionCreate, db: Session = Depends(get_d
     product = scope_company_query(db.query(models.Product), current_user, models.Product).filter(models.Product.id == sale.product_id).first()
     if not product:
         raise HTTPException(status_code=403, detail="Invalid product or product does not belong to your company")
+    if not product.status:
+        raise HTTPException(status_code=422, detail="Inactive products cannot be used for new sales")
 
     new_sale = models.SaleTransaction(
         **sale.model_dump(),
