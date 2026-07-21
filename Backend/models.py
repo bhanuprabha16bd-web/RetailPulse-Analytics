@@ -15,6 +15,17 @@ class UserStatusEnum(str, enum.Enum):
     active = "Active"
     inactive = "Inactive"
 
+class SalesChannelEnum(str, enum.Enum):
+    retail_store = "Retail Store"
+    online_store = "Online Store"
+    marketplace = "Marketplace"
+
+class PaymentMethodEnum(str, enum.Enum):
+    cash = "Cash"
+    card = "Card"
+    upi = "UPI"
+    bank_transfer = "Bank Transfer"
+
 class Company(Base):
     __tablename__ = "companies"
 
@@ -30,7 +41,7 @@ class Company(Base):
     stores = relationship("Store", back_populates="company")
     products = relationship("Product", back_populates="company")
     categories = relationship("Category", back_populates="company")
-    sales = relationship("SaleTransaction", back_populates="company")
+    sales = relationship("Sale", back_populates="company")
     audit_logs = relationship("AuditLog", back_populates="company")
 
 class User(Base):
@@ -87,7 +98,7 @@ class Store(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     company = relationship("Company", back_populates="stores")
-    sales = relationship("SaleTransaction", back_populates="store")
+    sales = relationship("Sale", back_populates="store")
 
 class Product(Base):
     __tablename__ = "products"
@@ -112,7 +123,7 @@ class Product(Base):
 
     company = relationship("Company", back_populates="products")
     category = relationship("Category", back_populates="products")
-    sales = relationship("SaleTransaction", back_populates="product")
+    
 
 class Category(Base):
     __tablename__ = "categories"
@@ -131,17 +142,48 @@ class Category(Base):
     company = relationship("Company", back_populates="categories")
     products = relationship("Product", back_populates="category")
 
-class SaleTransaction(Base):
-    __tablename__ = "sale_transactions"
+class Sale(Base):
+    __tablename__ = "sales"
 
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
     store_id = Column(Integer, ForeignKey("stores.id"))
-    product_id = Column(Integer, ForeignKey("products.id"))
-    quantity = Column(Integer, default=1)
-    total_amount = Column(Float)
-    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    invoice_number = Column(String, index=True, nullable=False)
+    customer_name = Column(String, nullable=True)
+    sales_channel = Column(Enum(SalesChannelEnum), default=SalesChannelEnum.retail_store)
+    payment_method = Column(Enum(PaymentMethodEnum), default=PaymentMethodEnum.cash)
+    total_amount = Column(Float, nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    store = relationship("Store", back_populates="sales")
-    product = relationship("Product", back_populates="sales")
     company = relationship("Company", back_populates="sales")
+    store = relationship("Store", back_populates="sales")
+    creator = relationship("User")
+    items = relationship("SaleItem", back_populates="sale", cascade="all, delete-orphan")
+
+class SaleItem(Base):
+    __tablename__ = "sale_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    sale_id = Column(Integer, ForeignKey("sales.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    category_id = Column(Integer, ForeignKey("categories.id"))
+    quantity = Column(Integer, nullable=False)
+    unit_price = Column(Float, nullable=False)
+    discount = Column(Float, default=0.0)
+    tax = Column(Float, default=0.0)
+    total = Column(Float, nullable=False)
+
+    sale = relationship("Sale", back_populates="items")
+    product = relationship("Product")
+    category = relationship("Category")
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    message = Column(String, nullable=False)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Box, CircularProgress, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material';
 import { axiosPrivate } from '../api/axios';
 
@@ -29,7 +29,7 @@ const AuditLogs = () => {
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>Audit Logs</Typography>
+      <Typography variant="h4" sx={{ fontWeight: 'bold' }} gutterBottom>Audit Logs</Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>Security and account activity for your company.</Typography>
       {error ? <Alert severity="error">{error}</Alert> : (
         <TableContainer component={Paper}>

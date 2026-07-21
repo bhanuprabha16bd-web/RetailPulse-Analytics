@@ -59,35 +59,35 @@ const Register = () => {
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={3}>
-            <Grid item xs={12}>
+            <Grid size={{xs: 12}}>
               <Typography variant="h6" color="primary.light">Company Information</Typography>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{xs: 12, sm: 6}}>
               <TextField fullWidth label="Company Name" {...register('name')} error={!!errors.name} helperText={errors.name?.message} />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{xs: 12, sm: 6}}>
               <TextField fullWidth label="Industry" {...register('industry')} error={!!errors.industry} helperText={errors.industry?.message} />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{xs: 12, sm: 6}}>
               <TextField fullWidth label="Company Email" type="email" {...register('email')} error={!!errors.email} helperText={errors.email?.message} />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{xs: 12, sm: 6}}>
               <TextField fullWidth label="Phone Number" {...register('phone')} error={!!errors.phone} helperText={errors.phone?.message} />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{xs: 12}}>
               <TextField fullWidth label="Address" {...register('address')} error={!!errors.address} helperText={errors.address?.message} />
             </Grid>
 
-            <Grid item xs={12} sx={{ mt: 2 }}>
+            <Grid size={{xs: 12}} sx={{ mt: 2 }}>
               <Typography variant="h6" color="primary.light">Owner Account</Typography>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{xs: 12, sm: 6}}>
               <TextField fullWidth label="Owner Name" {...register('owner_name')} error={!!errors.owner_name} helperText={errors.owner_name?.message} />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{xs: 12, sm: 6}}>
               <TextField fullWidth label="Owner Email" type="email" {...register('owner_email')} error={!!errors.owner_email} helperText={errors.owner_email?.message} />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{xs: 12, sm: 6}}>
               <TextField
                 select
                 fullWidth
@@ -102,10 +102,10 @@ const Register = () => {
                 <MenuItem value="Viewer">Viewer</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{xs: 12, sm: 6}}>
               <TextField fullWidth label="Password" type="password" {...register('password')} error={!!errors.password} helperText={errors.password?.message} />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{xs: 12, sm: 6}}>
               <TextField fullWidth label="Confirm Password" type="password" {...register('confirm_password')} error={!!errors.confirm_password} helperText={errors.confirm_password?.message} />
             </Grid>
           </Grid>

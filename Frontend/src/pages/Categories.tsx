@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
   IconButton, InputAdornment, Paper, Stack, Table, TableBody, TableCell, TableContainer,
@@ -89,8 +89,8 @@ const Categories = () => {
 
   return (
     <Box>
-      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={2} sx={{ mb: 3 }}>
-        <Box><Typography variant="h4" fontWeight="bold" gutterBottom>Categories</Typography><Typography color="text.secondary">Manage the product categories used across your company.</Typography></Box>
+      <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', alignItems: { sm: 'center' }, mb: 3 }} spacing={2}>
+        <Box><Typography variant="h4" sx={{ fontWeight: 'bold' }} gutterBottom>Categories</Typography><Typography color="text.secondary">Manage the product categories used across your company.</Typography></Box>
         <Button variant="contained" startIcon={<Add />} onClick={openCreate}>Add category</Button>
       </Stack>
       {error && <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>{error}</Alert>}
@@ -118,8 +118,8 @@ const Categories = () => {
       <Dialog open={dialogOpen} onClose={() => !saving && setDialogOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>{editing ? 'Edit category' : 'Add category'}</DialogTitle>
         <DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
-          <TextField autoFocus required label="Category name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} inputProps={{ maxLength: 120 }} />
-          <TextField label="Description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} multiline minRows={3} inputProps={{ maxLength: 500 }} />
+          <TextField autoFocus required label="Category name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} slotProps={{ htmlInput: { maxLength: 120 } }} />
+          <TextField label="Description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} multiline minRows={3} slotProps={{ htmlInput: { maxLength: 500 } }} />
           <TextField select label="Status" value={form.status ? 'active' : 'inactive'} onChange={(event) => setForm({ ...form, status: event.target.value === 'active' })} slotProps={{ select: { native: true } }}>
             <option value="active">Active</option><option value="inactive">Inactive</option>
           </TextField>

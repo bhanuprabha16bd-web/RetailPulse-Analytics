@@ -13,6 +13,8 @@ import Profile from './pages/Profile';
 import AuditLogs from './pages/AuditLogs';
 import Categories from './pages/Categories';
 import Products from './pages/Products';
+import Sales from './pages/Sales';
+import Stores from './pages/Stores';
 
 const queryClient = new QueryClient();
 
@@ -30,9 +32,10 @@ function App() {
               {/* Protected Routes */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<Dashboard />} />
-                <Route path="/stores" element={<div>Stores Page Placeholder</div>} />
+                <Route path="/stores" element={<Stores />} />
                 <Route path="/products" element={<Products />} />
                 <Route path="/categories" element={<Categories />} />
+                <Route path="/sales" element={<Sales />} />
                 <Route path="/analytics" element={<div>Analytics Page Placeholder</div>} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/audit-logs" element={<AuditLogs />} />

@@ -8,7 +8,8 @@ import { axiosPrivate } from '../api/axios';
 interface Store { is_active: boolean }
 interface Product { status: boolean }
 interface Category { id: number; name: string }
-interface Sale { total_amount: number; timestamp: string; product?: { categoryId: number } | null }
+interface SaleItem { categoryId: number; total: number; product?: { categoryId: number } | null }
+interface Sale { totalAmount: number; createdAt: string; items: SaleItem[] }
 
 const StatCard = ({ title, value, icon }: { title: string; value: string; icon: React.ReactNode }) => (
   <Card sx={{ height: '100%' }}>
@@ -44,22 +45,27 @@ const Dashboard = () => {
 
   if (!user) return null;
 
-  const totalRevenue = sales.reduce((sum, sale) => sum + sale.total_amount, 0);
+  const totalRevenue = sales.reduce((sum, sale) => sum + sale.totalAmount, 0);
+  
   const salesByDay = Object.values(sales.reduce<Record<string, { name: string; revenue: number }>>((days, sale) => {
-    const date = new Date(sale.timestamp);
+    const date = new Date(sale.createdAt);
     const key = date.toISOString().slice(0, 10);
     days[key] = {
       name: new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(date),
-      revenue: (days[key]?.revenue ?? 0) + sale.total_amount,
+      revenue: (days[key]?.revenue ?? 0) + sale.totalAmount,
     };
     return days;
   }, {})).slice(-7);
+
   const salesByCategory = Object.values(sales.reduce<Record<string, { name: string; value: number }>>((acc, sale) => {
-    const categoryId = sale.product?.categoryId;
-    const categoryName = categoryId ? categories.find(c => c.id === categoryId)?.name || 'Unknown' : 'Uncategorized';
-    acc[categoryName] = { name: categoryName, value: (acc[categoryName]?.value ?? 0) + sale.total_amount };
+    sale.items.forEach(item => {
+      const categoryId = item.categoryId;
+      const categoryName = categoryId ? categories.find(c => c.id === categoryId)?.name || 'Unknown' : 'Uncategorized';
+      acc[categoryName] = { name: categoryName, value: (acc[categoryName]?.value ?? 0) + item.total };
+    });
     return acc;
   }, {}));
+
   const currency = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'INR' });
 
   return (
@@ -70,20 +76,20 @@ const Dashboard = () => {
       </Box>
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}><StatCard title="TOTAL REVENUE" value={currency.format(totalRevenue)} icon={<AttachMoney />} /></Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}><StatCard title="SALES" value={String(sales.length)} icon={<TrendingUp />} /></Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}><StatCard title="ACTIVE STORES" value={String(stores.filter((store) => store.is_active).length)} icon={<StoreIcon />} /></Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}><StatCard title="TOTAL CATEGORIES" value={String(categories.length)} icon={<CategoryIcon />} /></Grid>
-        <Grid size={{ xs: 12, sm: 4 }}><StatCard title="TOTAL PRODUCTS" value={String(products.length)} icon={<InventoryIcon />} /></Grid>
-        <Grid size={{ xs: 12, sm: 4 }}><StatCard title="ACTIVE PRODUCTS" value={String(products.filter(p => p.status).length)} icon={<InventoryIcon />} /></Grid>
-        <Grid size={{ xs: 12, sm: 4 }}><StatCard title="INACTIVE PRODUCTS" value={String(products.filter(p => !p.status).length)} icon={<InventoryIcon />} /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="TOTAL REVENUE" value={currency.format(totalRevenue)} icon={<AttachMoney />} /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="SALES" value={String(sales.length)} icon={<TrendingUp />} /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="ACTIVE STORES" value={String(stores.filter((store) => store.is_active).length)} icon={<StoreIcon />} /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="TOTAL CATEGORIES" value={String(categories.length)} icon={<CategoryIcon />} /></Grid>
+        <Grid item xs={12} sm={4}><StatCard title="TOTAL PRODUCTS" value={String(products.length)} icon={<InventoryIcon />} /></Grid>
+        <Grid item xs={12} sm={4}><StatCard title="ACTIVE PRODUCTS" value={String(products.filter(p => p.status).length)} icon={<InventoryIcon />} /></Grid>
+        <Grid item xs={12} sm={4}><StatCard title="INACTIVE PRODUCTS" value={String(products.filter(p => !p.status).length)} icon={<InventoryIcon />} /></Grid>
       </Grid>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
       <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 8 }}>
+        <Grid item xs={12} md={8}>
           <Paper sx={{ p: 3, height: '400px', display: 'flex', flexDirection: 'column' }}>
-            
+            <Typography variant="h6" gutterBottom>Revenue over time</Typography>
             <Box sx={{ flexGrow: 1, width: '100%' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={salesByDay} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
@@ -98,9 +104,9 @@ const Dashboard = () => {
             </Box>
           </Paper>
         </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, height: '400px', display: 'flex', flexDirection: 'column' }}>
-            
+            <Typography variant="h6" gutterBottom>Sales by Category</Typography>
             <Box sx={{ flexGrow: 1, width: '100%' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={salesByCategory} layout="vertical" margin={{ top: 10, right: 30, left: 20, bottom: 5 }}>

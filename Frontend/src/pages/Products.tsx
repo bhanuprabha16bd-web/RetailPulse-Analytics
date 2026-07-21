@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
   Divider, IconButton, InputAdornment, MenuItem, Paper, Stack, Table, TableBody, TableCell,
@@ -109,8 +109,8 @@ const Products = () => {
   if (!adminRoles.includes(user?.role ?? '')) return <Alert severity="error">Product management is available to Company Admins only.</Alert>;
 
   return <Box>
-    <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={2} sx={{ mb: 3 }}>
-      <Box><Typography variant="h4" fontWeight="bold" gutterBottom>Products</Typography><Typography color="text.secondary">Manage your company’s product master data.</Typography></Box>
+    <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', alignItems: { sm: 'center' }, mb: 3 }} spacing={2}>
+      <Box><Typography variant="h4" sx={{ fontWeight: 'bold' }} gutterBottom>Products</Typography><Typography color="text.secondary">Manage your product catalog.</Typography></Box>
       <Button variant="contained" startIcon={<Add />} onClick={openCreate}>Add product</Button>
     </Stack>
     {error && <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>{error}</Alert>}
