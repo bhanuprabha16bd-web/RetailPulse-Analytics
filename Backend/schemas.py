@@ -116,6 +116,8 @@ class ProductBase(BaseModel):
     unit_price: float = Field(ge=0)
     cost_price: Optional[float] = Field(default=None, ge=0)
     stock_quantity: int = Field(default=0, ge=0)
+    reserved_stock: int = Field(default=0, ge=0)
+    reorder_level: int = Field(default=10, ge=0)
     unit_of_measure: str = Field(default="Unit", min_length=1, max_length=50)
     status: bool = True
 
@@ -199,3 +201,33 @@ class NotificationOut(BaseModel):
     message: str
     is_read: bool
     created_at: datetime
+
+from models import StockMovementEnum
+
+class StockMovementBase(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
+    product_id: int
+    movement_type: StockMovementEnum
+    previous_quantity: int
+    updated_quantity: int
+    quantity_changed: int
+    reason: Optional[str] = None
+    remarks: Optional[str] = None
+    reference_id: Optional[str] = None
+
+class StockMovementOut(StockMovementBase):
+    id: int
+    company_id: int
+    user_id: int
+    timestamp: datetime
+    product: Optional[ProductOut] = None
+    user: Optional[UserOut] = None
+
+class StockAdjustmentCreate(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    product_id: int
+    adjustment_type: str # "Stock Addition", "Stock Removal", "Manual Adjustment"
+    quantity: int
+    reason: str
+    remarks: Optional[str] = None
+

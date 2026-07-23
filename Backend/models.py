@@ -4,6 +4,13 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
 
+class StockMovementEnum(str, enum.Enum):
+    sale = "Sale"
+    manual_adjustment = "Manual Adjustment"
+    stock_addition = "Stock Addition"
+    stock_removal = "Stock Removal"
+    return_stock = "Return"
+
 class RoleEnum(str, enum.Enum):
     super_admin = "Super Admin"
     company_owner = "Company Owner"
@@ -116,6 +123,8 @@ class Product(Base):
     unit_price = Column(Float, nullable=False)
     cost_price = Column(Float, nullable=True)
     stock_quantity = Column(Integer, default=0, nullable=False)
+    reserved_stock = Column(Integer, default=0, nullable=False)
+    reorder_level = Column(Integer, default=10, nullable=False)
     unit_of_measure = Column(String, default="Unit", nullable=False)
     status = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -123,6 +132,7 @@ class Product(Base):
 
     company = relationship("Company", back_populates="products")
     category = relationship("Category", back_populates="products")
+    stock_movements = relationship("StockMovement", back_populates="product", cascade="all, delete-orphan")
     
 
 class Category(Base):
@@ -187,3 +197,23 @@ class Notification(Base):
     message = Column(String, nullable=False)
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class StockMovement(Base):
+    __tablename__ = "stock_movements"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False, index=True)
+    movement_type = Column(Enum(StockMovementEnum), nullable=False)
+    previous_quantity = Column(Integer, nullable=False, default=0)
+    updated_quantity = Column(Integer, nullable=False, default=0)
+    quantity_changed = Column(Integer, nullable=False)
+    reason = Column(String, nullable=True)
+    remarks = Column(String, nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    reference_id = Column(String, nullable=True)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+
+    product = relationship("Product", back_populates="stock_movements")
+    company = relationship("Company")
+    user = relationship("User")

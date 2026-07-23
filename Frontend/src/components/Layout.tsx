@@ -25,6 +25,7 @@ const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
     { text: 'Stores', icon: <StoreIcon />, path: '/stores' },
     { text: 'Products', icon: <InventoryIcon />, path: '/products', adminOnly: true },
+    { text: 'Inventory', icon: <InventoryIcon />, path: '/inventory', adminOnly: true },
     { text: 'Categories', icon: <CategoryIcon />, path: '/categories', adminOnly: true },
     { text: 'Sales', icon: <ReceiptIcon />, path: '/sales', salesOnly: true },
     { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },

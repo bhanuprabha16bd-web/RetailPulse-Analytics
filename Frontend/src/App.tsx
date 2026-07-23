@@ -15,6 +15,7 @@ import Categories from './pages/Categories';
 import Products from './pages/Products';
 import Sales from './pages/Sales';
 import Stores from './pages/Stores';
+import Inventory from './pages/Inventory';
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/stores" element={<Stores />} />
                 <Route path="/products" element={<Products />} />
+                <Route path="/inventory" element={<Inventory />} />
                 <Route path="/categories" element={<Categories />} />
                 <Route path="/sales" element={<Sales />} />
                 <Route path="/analytics" element={<div>Analytics Page Placeholder</div>} />

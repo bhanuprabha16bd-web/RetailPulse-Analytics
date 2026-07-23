@@ -176,6 +176,20 @@ def create_sale(sale_create: schemas.SaleCreate, db: Session = Depends(get_db), 
     )
     db.add(new_sale)
     
+    for item in sale_items:
+        sm = models.StockMovement(
+            company_id=current_user.company_id,
+            product_id=item.product_id,
+            movement_type=models.StockMovementEnum.sale,
+            previous_quantity=product.stock_quantity + item.quantity,
+            updated_quantity=product.stock_quantity,
+            quantity_changed=-item.quantity,
+            reason="Sale",
+            user_id=current_user.id,
+            reference_id=invoice_number
+        )
+        db.add(sm)
+    
     audit_sale = models.AuditLog(
         company_id=current_user.company_id,
         user_id=current_user.id,
@@ -199,6 +213,18 @@ def delete_sale(sale_id: int, db: Session = Depends(get_db), current_user: model
         product = db.query(models.Product).filter(models.Product.id == item.product_id).first()
         if product:
             product.stock_quantity += item.quantity
+            sm = models.StockMovement(
+                company_id=current_user.company_id,
+                product_id=product.id,
+                movement_type=models.StockMovementEnum.return_stock,
+                previous_quantity=product.stock_quantity - item.quantity,
+                updated_quantity=product.stock_quantity,
+                quantity_changed=item.quantity,
+                reason="Sale Reverted",
+                user_id=current_user.id,
+                reference_id=f"Reverted {sale.invoice_number}"
+            )
+            db.add(sm)
             if product.stock_quantity > 0:
                 product.status = True # Restore status if it was out of stock
             

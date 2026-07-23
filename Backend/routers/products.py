@@ -32,6 +32,8 @@ def clean_product(payload: schemas.ProductBase) -> dict:
 
 
 def validate_product_values(data: dict, db: Session, current_user: models.User, product_id: int | None = None, current_category_id: int | None = None):
+    if data.get("reorder_level", 0) < 0:
+        raise HTTPException(status_code=422, detail="Reorder level cannot be negative")
     if data.get("unit_price", 0) <= 0:
         raise HTTPException(status_code=422, detail="Unit price must be greater than zero")
     if data.get("cost_price") is not None and data["cost_price"] > data["unit_price"]:
@@ -83,6 +85,19 @@ def create_product(payload: schemas.ProductCreate, request: Request, db: Session
     validate_product_values(data, db, current_user)
     product = models.Product(**data, company_id=current_user.company_id)
     db.add(product)
+    if product.stock_quantity > 0:
+        sm = models.StockMovement(
+            company_id=current_user.company_id,
+            product_id=product.id,
+            movement_type=models.StockMovementEnum.stock_addition,
+            previous_quantity=0,
+            updated_quantity=product.stock_quantity,
+            quantity_changed=product.stock_quantity,
+            reason="Initial Stock",
+            user_id=current_user.id,
+            reference_id="Initial Stock"
+        )
+        db.add(sm)
     audit.record_audit_log(db, request, current_user, "Product Created", target_name=product.name)
     db.commit()
     db.refresh(product)
@@ -96,10 +111,29 @@ def update_product(product_id: int, payload: schemas.ProductUpdate, request: Req
         raise HTTPException(status_code=404, detail="Product not found")
     data = clean_product(payload)
     validate_product_values(data, db, current_user, product_id, product.category_id)
+    old_stock = product.stock_quantity
+    old_reorder = product.reorder_level
     old_status = product.status
     for key, value in data.items():
         setattr(product, key, value)
     
+    if old_stock != product.stock_quantity:
+        diff = product.stock_quantity - old_stock
+        sm = models.StockMovement(
+            company_id=current_user.company_id,
+            product_id=product.id,
+            movement_type=models.StockMovementEnum.manual_adjustment,
+            previous_quantity=old_stock,
+            updated_quantity=product.stock_quantity,
+            quantity_changed=diff,
+            reason="Product Edit",
+            user_id=current_user.id,
+            reference_id="Manual Update"
+        )
+        db.add(sm)
+        
+    if old_reorder != product.reorder_level:
+        audit.record_audit_log(db, request, current_user, "Reorder Level Updated", target_name=product.name)
     if old_status != product.status:
         action_name = "Product Activated" if product.status else "Product Deactivated"
         audit.record_audit_log(db, request, current_user, action_name, target_name=product.name)
