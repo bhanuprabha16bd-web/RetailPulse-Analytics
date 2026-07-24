@@ -15,6 +15,7 @@ import Categories from './pages/Categories';
 import Products from './pages/Products';
 import Sales from './pages/Sales';
 import Stores from './pages/Stores';
+import Analytics from './pages/Analytics';
 import Inventory from './pages/Inventory';
 
 const queryClient = new QueryClient();
@@ -38,7 +39,7 @@ function App() {
                 <Route path="/inventory" element={<Inventory />} />
                 <Route path="/categories" element={<Categories />} />
                 <Route path="/sales" element={<Sales />} />
-                <Route path="/analytics" element={<div>Analytics Page Placeholder</div>} />
+                <Route path="/analytics" element={<Analytics />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/audit-logs" element={<AuditLogs />} />
                 <Route path="/settings" element={<div>Settings Page Placeholder</div>} />
