@@ -85,6 +85,7 @@ def create_product(payload: schemas.ProductCreate, request: Request, db: Session
     validate_product_values(data, db, current_user)
     product = models.Product(**data, company_id=current_user.company_id)
     db.add(product)
+    db.flush()
     if product.stock_quantity > 0:
         sm = models.StockMovement(
             company_id=current_user.company_id,

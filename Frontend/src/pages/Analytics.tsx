@@ -315,7 +315,7 @@ const Analytics = () => {
                     {kpis.sales_by_payment.map((_, i) => <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
                   <RechartsTooltip formatter={(val: number) => `$${val.toFixed(2)}`} />
-                  <Legend />
+                  <Legend iconType="square" />
                 </PieChart>
               </ResponsiveContainer>
             ) : (

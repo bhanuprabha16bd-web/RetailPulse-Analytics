@@ -25,7 +25,7 @@ const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
     { text: 'Stores', icon: <StoreIcon />, path: '/stores' },
     { text: 'Products', icon: <InventoryIcon />, path: '/products', adminOnly: true },
-    { text: 'Inventory', icon: <InventoryIcon />, path: '/inventory', adminOnly: true },
+    { text: 'Inventory', icon: <InventoryIcon />, path: '/inventory', inventoryOnly: true },
     { text: 'Categories', icon: <CategoryIcon />, path: '/categories', adminOnly: true },
     { text: 'Sales', icon: <ReceiptIcon />, path: '/sales', salesOnly: true },
     { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },
@@ -41,6 +41,7 @@ const Layout = () => {
     const location = useLocation();
     const hasAuditAccess = ['Super Admin', 'Company Owner', 'Company Admin'].includes(user?.role ?? '');
     const hasSalesAccess = ['Super Admin', 'Company Owner', 'Company Admin', 'Analyst'].includes(user?.role ?? '');
+    const hasInventoryAccess = ['Super Admin', 'Company Owner', 'Company Admin', 'Analyst'].includes(user?.role ?? '');
 
     const handleDrawerToggle = () => {
         setMobileOpen(!mobileOpen);
@@ -69,7 +70,7 @@ const Layout = () => {
             </Toolbar>
             <Divider />
             <List>
-                {menuItems.filter((item) => (!item.auditOnly || hasAuditAccess) && (!item.adminOnly || hasAuditAccess) && (!(item as any).salesOnly || hasSalesAccess)).map((item) => (
+                {menuItems.filter((item) => (!item.auditOnly || hasAuditAccess) && (!item.adminOnly || hasAuditAccess) && (!(item as any).salesOnly || hasSalesAccess) && (!(item as any).inventoryOnly || hasInventoryAccess)).map((item) => (
                     <ListItem key={item.text} disablePadding>
                         <ListItemButton 
                             selected={location.pathname === item.path}

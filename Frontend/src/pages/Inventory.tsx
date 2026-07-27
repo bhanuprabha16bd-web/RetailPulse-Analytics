@@ -221,8 +221,8 @@ const Inventory = () => {
             </Grid>
 
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <Paper variant="outlined" sx={{ p: 2, height: 350 }}>
+              <Grid item xs={10} md={10}>
+                <Paper variant="outlined" sx={{ p: 2, height: 500 }}>
                   <Typography variant="h6" mb={2} align="center">Stock Status Distribution</Typography>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -235,8 +235,8 @@ const Inventory = () => {
                   </ResponsiveContainer>
                 </Paper>
               </Grid>
-              <Grid item xs={12} md={6}>
-                <Paper variant="outlined" sx={{ p: 2, height: 350 }}>
+              <Grid item xs={12} md={12}>
+                <Paper variant="outlined" sx={{ p: 2, height: 500 }}>
                   <Typography variant="h6" mb={2} align="center">Inventory by Category</Typography>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={categoryChartData}>
@@ -311,7 +311,7 @@ const Inventory = () => {
                       <TableCell sx={{ fontWeight: 500 }}>{p.name}</TableCell>
                       <TableCell>{p.sku}</TableCell>
                       <TableCell>{p.categoryName}</TableCell>
-                      <TableCell>{p.brand || '—'}</TableCell>
+                      <TableCell>{p.brand || 'Â—'}</TableCell>
                       <TableCell align="right">{p.stockQuantity}</TableCell>
                       <TableCell align="right">{p.reservedStock}</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 'bold' }}>{p.available}</TableCell>
@@ -351,13 +351,13 @@ const Inventory = () => {
                       <TableCell>{new Date(m.timestamp).toLocaleString()}</TableCell>
                       <TableCell sx={{ fontWeight: 500 }}>{m.product?.name || `Product ID ${m.productId}`}</TableCell>
                       <TableCell><Chip label={m.movementType} size="small" variant="outlined" color={getMovementColor(m.movementType, m.quantityChanged)} /></TableCell>
-                      <TableCell align="right">{m.previousQuantity ?? '—'}</TableCell>
-                      <TableCell align="right">{m.updatedQuantity ?? '—'}</TableCell>
+                      <TableCell align="right">{m.previousQuantity ?? 'Â—'}</TableCell>
+                      <TableCell align="right">{m.updatedQuantity ?? 'Â—'}</TableCell>
                       <TableCell align="right" sx={{ color: m.quantityChanged > 0 ? 'success.main' : 'error.main', fontWeight: 'bold' }}>
                         {m.quantityChanged > 0 ? '+' : ''}{m.quantityChanged}
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">{m.reason || m.referenceId || '—'}</Typography>
+                        <Typography variant="body2">{m.reason || m.referenceId || 'Â—'}</Typography>
                         {m.remarks && <Typography variant="caption" color="text.secondary">{m.remarks}</Typography>}
                       </TableCell>
                       <TableCell>{m.user?.fullName || 'System'}</TableCell>
