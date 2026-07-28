@@ -17,6 +17,10 @@ import Sales from './pages/Sales';
 import Stores from './pages/Stores';
 import Analytics from './pages/Analytics';
 import Inventory from './pages/Inventory';
+import CustomersList from './pages/Customers/CustomersList';
+import CustomerProfile from './pages/Customers/CustomerProfile';
+import CustomerAnalytics from './pages/Customers/CustomerAnalytics';
+import Layout from './components/Layout';
 
 const queryClient = new QueryClient();
 
@@ -32,18 +36,21 @@ function App() {
               <Route path="/register" element={<Register />} />
               
               {/* Protected Routes */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/stores" element={<Stores />} />
-                <Route path="/products" element={<Products />} />
-                <Route path="/inventory" element={<Inventory />} />
-                <Route path="/categories" element={<Categories />} />
-                <Route path="/sales" element={<Sales />} />
-                <Route path="/analytics" element={<Analytics />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/audit-logs" element={<AuditLogs />} />
-                <Route path="/settings" element={<div>Settings Page Placeholder</div>} />
-              </Route>
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/stores" element={<Stores />} />
+                  <Route path="/products" element={<Products />} />
+                  <Route path="/inventory" element={<Inventory />} />
+                  <Route path="/categories" element={<Categories />} />
+                  <Route path="/sales" element={<Sales />} />
+                  <Route path="/customers" element={<CustomersList />} />
+                  <Route path="/customers/analytics" element={<CustomerAnalytics />} />
+                  <Route path="/customers/:id" element={<CustomerProfile />} />
+                  <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/audit-logs" element={<AuditLogs />} />
+                  <Route path="/settings" element={<div>Settings Page Placeholder</div>} />
+                </Route>
               
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

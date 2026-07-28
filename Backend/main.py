@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import database
 from models import Base
 from database import engine
-from routers import audit_logs, auth, users, stores, products, categories, sales, notifications, inventory, analytics
+from routers import audit_logs, auth, users, stores, products, categories, sales, notifications, inventory, analytics, customers
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -15,6 +15,9 @@ async def lifespan(app: FastAPI):
     database.migrate_category_schema()
     database.migrate_schema_v2()
     database.migrate_audit_schema()
+    database.migrate_customers_schema()
+    database.migrate_customers_segment_schema()
+    database.migrate_customer_purchase_summary_schema()
     yield
 
 app = FastAPI(title="RetailPulse Analytics API", lifespan=lifespan)
@@ -37,6 +40,7 @@ app.include_router(notifications.router)
 app.include_router(inventory.router)
 app.include_router(audit_logs.router)
 app.include_router(analytics.router)
+app.include_router(customers.router)
 
 @app.get("/")
 def read_root():

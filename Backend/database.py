@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine, inspect, text, func, desc
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 load_dotenv()
@@ -163,6 +163,129 @@ def migrate_audit_schema():
                     action = TRIM(SUBSTR(action, 1, INSTR(action, ':') - 1))
                 WHERE action LIKE '%: %'
             """))
+
+def migrate_customers_schema():
+    """Add customer_id to sales table."""
+    inspector = inspect(engine)
+    if "sales" not in inspector.get_table_names():
+        return
+        
+    columns = {column["name"] for column in inspector.get_columns("sales")}
+    with engine.begin() as connection:
+        if "customer_id" not in columns:
+            connection.execute(text("ALTER TABLE sales ADD COLUMN customer_id INTEGER"))
+            if engine.dialect.name != "sqlite":
+                connection.execute(text("""
+                    ALTER TABLE sales
+                    ADD CONSTRAINT fk_sales_customer_id
+                    FOREIGN KEY (customer_id) REFERENCES customers (id)
+                """))
+
+
+def migrate_customers_segment_schema():
+    """Add segment to customers table and backfill based on purchase history."""
+    inspector = inspect(engine)
+    if "customers" not in inspector.get_table_names():
+        return
+        
+    columns = {column["name"] for column in inspector.get_columns("customers")}
+    with engine.begin() as connection:
+        if "segment" not in columns:
+            connection.execute(text("ALTER TABLE customers ADD COLUMN segment VARCHAR DEFAULT 'NEW_CUSTOMER'"))
+            # Backfill
+            connection.execute(text("""
+                UPDATE customers
+                SET segment = (
+                    SELECT CASE 
+                        WHEN COUNT(sales.id) <= 1 THEN 'new'
+                        WHEN COUNT(sales.id) BETWEEN 2 AND 4 THEN 'regular'
+                        WHEN COUNT(sales.id) BETWEEN 5 AND 9 THEN 'loyal'
+                        ELSE 'vip'
+                    END
+                    FROM sales
+                    WHERE sales.customer_id = customers.id
+                )
+            """))
+            # For customers with no sales, the subquery might return NULL depending on how SQLite handles it, so we fallback to 'new'
+            connection.execute(text("UPDATE customers SET segment = 'new' WHERE segment IS NULL"))
+
+def migrate_customer_purchase_summary_schema():
+    """Create customer_purchase_summary table and backfill it. Also fill missing email/phones."""
+    import models
+    inspector = inspect(engine)
+    if "customer_purchase_summary" not in inspector.get_table_names():
+        models.CustomerPurchaseSummary.__table__.create(engine)
+
+    db = SessionLocal()
+    try:
+        # Fill missing email/phone to satisfy NOT NULL if there are old customers
+        customers_no_email = db.query(models.Customer).filter((models.Customer.email == None) | (models.Customer.email == "")).all()
+        for c in customers_no_email:
+            c.email = f"unknown_{c.id}@example.com"
+        
+        customers_no_phone = db.query(models.Customer).filter((models.Customer.phone == None) | (models.Customer.phone == "")).all()
+        for c in customers_no_phone:
+            c.phone = f"000000{c.id}"
+            
+        db.commit()
+
+        # Backfill purchase summaries
+        all_customers = db.query(models.Customer).all()
+        for customer in all_customers:
+            summary = db.query(models.CustomerPurchaseSummary).filter(models.CustomerPurchaseSummary.customer_id == customer.id).first()
+            if not summary:
+                summary = models.CustomerPurchaseSummary(customer_id=customer.id)
+                db.add(summary)
+            
+            # compute stats
+            sales = db.query(models.Sale).filter(models.Sale.customer_id == customer.id).all()
+            if sales:
+                summary.total_orders = len(sales)
+                summary.total_revenue = sum(s.total_amount for s in sales)
+                
+                # Fetch items to compute total_products_purchased
+                sale_ids = [s.id for s in sales]
+                total_qty = db.query(func.sum(models.SaleItem.quantity)).filter(models.SaleItem.sale_id.in_(sale_ids)).scalar()
+                summary.total_products_purchased = total_qty or 0
+                
+                summary.average_order_value = summary.total_revenue / summary.total_orders
+                
+                first_sale = min(sales, key=lambda x: x.created_at)
+                last_sale = max(sales, key=lambda x: x.created_at)
+                summary.first_purchase_date = first_sale.created_at
+                summary.last_purchase_date = last_sale.created_at
+                
+                if summary.total_orders > 1:
+                    delta = summary.last_purchase_date - summary.first_purchase_date
+                    summary.purchase_frequency = delta.days / (summary.total_orders - 1)
+                
+                # Favorite product/category
+                product_counts = db.query(
+                    models.SaleItem.product_id,
+                    func.sum(models.SaleItem.quantity).label('count')
+                ).filter(models.SaleItem.sale_id.in_(sale_ids))\
+                 .group_by(models.SaleItem.product_id)\
+                 .order_by(desc('count')).limit(1).first()
+                 
+                if product_counts:
+                    summary.favorite_product_id = product_counts.product_id
+                    
+                category_counts = db.query(
+                    models.SaleItem.category_id,
+                    func.sum(models.SaleItem.quantity).label('count')
+                ).filter(models.SaleItem.sale_id.in_(sale_ids))\
+                 .group_by(models.SaleItem.category_id)\
+                 .order_by(desc('count')).limit(1).first()
+                 
+                if category_counts:
+                    summary.favorite_category_id = category_counts.category_id
+
+        db.commit()
+    except Exception as e:
+        print(f"Migration error for purchase summary: {e}")
+        db.rollback()
+    finally:
+        db.close()
 
 def get_db():
     db = SessionLocal()

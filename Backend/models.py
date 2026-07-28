@@ -33,6 +33,21 @@ class PaymentMethodEnum(str, enum.Enum):
     upi = "UPI"
     bank_transfer = "Bank Transfer"
 
+class CustomerTypeEnum(str, enum.Enum):
+    retail = "Retail"
+    wholesale = "Wholesale"
+    corporate = "Corporate"
+
+class CustomerStatusEnum(str, enum.Enum):
+    active = "Active"
+    inactive = "Inactive"
+
+class CustomerSegmentEnum(str, enum.Enum):
+    new = "New Customer"
+    regular = "Regular Customer"
+    loyal = "Loyal Customer"
+    vip = "VIP Customer"
+
 class Company(Base):
     __tablename__ = "companies"
 
@@ -50,6 +65,7 @@ class Company(Base):
     categories = relationship("Category", back_populates="company")
     sales = relationship("Sale", back_populates="company")
     audit_logs = relationship("AuditLog", back_populates="company")
+    customers = relationship("Customer", back_populates="company")
 
 class User(Base):
     __tablename__ = "users"
@@ -158,6 +174,7 @@ class Sale(Base):
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
     store_id = Column(Integer, ForeignKey("stores.id"))
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True, index=True)
     invoice_number = Column(String, index=True, nullable=False)
     customer_name = Column(String, nullable=True)
     sales_channel = Column(Enum(SalesChannelEnum), default=SalesChannelEnum.retail_store)
@@ -171,6 +188,7 @@ class Sale(Base):
     store = relationship("Store", back_populates="sales")
     creator = relationship("User")
     items = relationship("SaleItem", back_populates="sale", cascade="all, delete-orphan")
+    customer = relationship("Customer", back_populates="sales")
 
 class SaleItem(Base):
     __tablename__ = "sale_items"
@@ -217,3 +235,53 @@ class StockMovement(Base):
     product = relationship("Product", back_populates="stock_movements")
     company = relationship("Company")
     user = relationship("User")
+
+class Customer(Base):
+    __tablename__ = "customers"
+    __table_args__ = (
+        UniqueConstraint("company_id", "email", name="uq_customers_company_email"),
+        UniqueConstraint("company_id", "phone", name="uq_customers_company_phone"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    customer_id = Column(String, index=True, nullable=False) # Auto-generated like CUST-1234
+    full_name = Column(String, index=True, nullable=False)
+    email = Column(String, index=True, nullable=False)
+    phone = Column(String, index=True, nullable=False)
+    date_of_birth = Column(DateTime, nullable=True)
+    gender = Column(String, nullable=True)
+    address = Column(String, nullable=True)
+    city = Column(String, nullable=True)
+    state = Column(String, nullable=True)
+    country = Column(String, nullable=True)
+    customer_type = Column(Enum(CustomerTypeEnum), default=CustomerTypeEnum.retail)
+    preferred_sales_channel = Column(Enum(SalesChannelEnum), default=SalesChannelEnum.retail_store)
+    status = Column(Enum(CustomerStatusEnum), default=CustomerStatusEnum.active)
+    segment = Column(Enum(CustomerSegmentEnum), default=CustomerSegmentEnum.new)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    company = relationship("Company", back_populates="customers")
+    sales = relationship("Sale", back_populates="customer")
+    purchase_summary = relationship("CustomerPurchaseSummary", back_populates="customer", uselist=False, cascade="all, delete-orphan")
+
+class CustomerPurchaseSummary(Base):
+    __tablename__ = "customer_purchase_summary"
+
+    id = Column(Integer, primary_key=True, index=True)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False, index=True, unique=True)
+    total_orders = Column(Integer, default=0)
+    total_revenue = Column(Float, default=0.0)
+    total_products_purchased = Column(Integer, default=0)
+    average_order_value = Column(Float, default=0.0)
+    purchase_frequency = Column(Float, nullable=True)
+    first_purchase_date = Column(DateTime(timezone=True), nullable=True)
+    last_purchase_date = Column(DateTime(timezone=True), nullable=True)
+    favorite_product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
+    favorite_category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    customer = relationship("Customer", back_populates="purchase_summary")
+    favorite_product = relationship("Product")
+    favorite_category = relationship("Category")

@@ -16,6 +16,80 @@ allow_sales_manage = RoleChecker([
     models.RoleEnum.analyst,
 ])
 
+from sqlalchemy import func
+
+def update_customer_stats(db: Session, customer_id: int, company_id: int):
+    customer = db.query(models.Customer).filter(models.Customer.id == customer_id).first()
+    if not customer:
+        return
+        
+    sales = db.query(models.Sale).filter(models.Sale.customer_id == customer_id).all()
+    sales_count = len(sales)
+    
+    # Update segment
+    old_segment = customer.segment
+    if sales_count <= 1:
+        segment = models.CustomerSegmentEnum.new
+    elif sales_count <= 4:
+        segment = models.CustomerSegmentEnum.regular
+    elif sales_count <= 9:
+        segment = models.CustomerSegmentEnum.loyal
+    else:
+        segment = models.CustomerSegmentEnum.vip
+        
+    if customer.segment != segment:
+        customer.segment = segment
+        db.add(customer)
+        if segment == models.CustomerSegmentEnum.vip:
+            db.add(models.Notification(company_id=company_id, message=f"Customer {customer.full_name} reached VIP status!"))
+            
+    # Send First Purchase Notification if exact 1
+    if sales_count == 1 and old_segment == models.CustomerSegmentEnum.new:
+        db.add(models.Notification(company_id=company_id, message=f"Customer {customer.full_name} completed their first purchase!"))
+
+    # Update summary
+    summary = db.query(models.CustomerPurchaseSummary).filter(models.CustomerPurchaseSummary.customer_id == customer_id).first()
+    if not summary:
+        summary = models.CustomerPurchaseSummary(customer_id=customer_id)
+        db.add(summary)
+        
+    if sales:
+        summary.total_orders = sales_count
+        summary.total_revenue = sum(s.total_amount for s in sales)
+        sale_ids = [s.id for s in sales]
+        summary.total_products_purchased = db.query(func.sum(models.SaleItem.quantity)).filter(models.SaleItem.sale_id.in_(sale_ids)).scalar() or 0
+        summary.average_order_value = summary.total_revenue / summary.total_orders
+        
+        first_sale = min(sales, key=lambda x: x.created_at)
+        last_sale = max(sales, key=lambda x: x.created_at)
+        summary.first_purchase_date = first_sale.created_at
+        summary.last_purchase_date = last_sale.created_at
+        
+        if summary.total_orders > 1:
+            delta = summary.last_purchase_date - summary.first_purchase_date
+            summary.purchase_frequency = delta.days / (summary.total_orders - 1)
+            
+        fav_prod = db.query(models.SaleItem.product_id, func.sum(models.SaleItem.quantity).label('cnt')).filter(models.SaleItem.sale_id.in_(sale_ids)).group_by(models.SaleItem.product_id).order_by(desc('cnt')).first()
+        if fav_prod:
+            summary.favorite_product_id = fav_prod.product_id
+            
+        fav_cat = db.query(models.SaleItem.category_id, func.sum(models.SaleItem.quantity).label('cnt')).filter(models.SaleItem.sale_id.in_(sale_ids)).group_by(models.SaleItem.category_id).order_by(desc('cnt')).first()
+        if fav_cat:
+            summary.favorite_category_id = fav_cat.category_id
+    else:
+        # No sales
+        summary.total_orders = 0
+        summary.total_revenue = 0.0
+        summary.total_products_purchased = 0
+        summary.average_order_value = 0.0
+        summary.purchase_frequency = None
+        summary.first_purchase_date = None
+        summary.last_purchase_date = None
+        summary.favorite_product_id = None
+        summary.favorite_category_id = None
+        
+    db.add(summary)
+
 def generate_invoice_number(db: Session, company_id: int) -> str:
     current_year = datetime.now().year
     prefix = f"INV-{current_year}-"
@@ -89,6 +163,14 @@ def create_sale(sale_create: schemas.SaleCreate, db: Session = Depends(get_db), 
         
     if not sale_create.items:
         raise HTTPException(status_code=400, detail="Sale must contain at least one product")
+        
+    if sale_create.customer_id:
+        customer = scope_company_query(db.query(models.Customer), current_user, models.Customer).filter(models.Customer.id == sale_create.customer_id).first()
+        if not customer:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        # If customer_name is not provided, autofill it from the linked customer
+        if not sale_create.customer_name:
+            sale_create.customer_name = customer.full_name
 
     total_amount = 0.0
     sale_items = []
@@ -166,6 +248,7 @@ def create_sale(sale_create: schemas.SaleCreate, db: Session = Depends(get_db), 
     new_sale = models.Sale(
         company_id=current_user.company_id,
         store_id=sale_create.store_id,
+        customer_id=sale_create.customer_id,
         customer_name=sale_create.customer_name,
         sales_channel=sale_create.sales_channel,
         payment_method=sale_create.payment_method,
@@ -197,6 +280,9 @@ def create_sale(sale_create: schemas.SaleCreate, db: Session = Depends(get_db), 
         target_name=invoice_number
     )
     db.add(audit_sale)
+
+    if sale_create.customer_id:
+        update_customer_stats(db, sale_create.customer_id, current_user.company_id)
 
     db.commit()
     db.refresh(new_sale)
@@ -244,6 +330,13 @@ def delete_sale(sale_id: int, db: Session = Depends(get_db), current_user: model
     )
     db.add(audit_del)
 
+    customer_id = sale.customer_id
+
     db.delete(sale)
     db.commit()
+    
+    if customer_id:
+        update_customer_stats(db, customer_id, current_user.company_id)
+        db.commit()
+        
     return None

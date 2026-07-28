@@ -9,7 +9,6 @@ import { axiosPrivate } from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 
 interface Store { id: number; name: string; isActive: boolean }
-interface Category { id: number; name: string }
 interface Product { id: number; name: string; categoryId: number; unitPrice: number; status: boolean; stockQuantity: number }
 interface SaleItem {
   id: number; saleId: number; productId: number; categoryId: number;
@@ -52,7 +51,6 @@ const Sales = () => {
   const [sales, setSales] = useState<Sale[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -69,14 +67,12 @@ const Sales = () => {
     Promise.all([
       axiosPrivate.get<Sale[]>('/sales/'),
       axiosPrivate.get<Store[]>('/stores/'),
-      axiosPrivate.get<Product[]>('/products/'),
-      axiosPrivate.get<Category[]>('/categories/')
+      axiosPrivate.get<Product[]>('/products/')
     ])
-      .then(([salesRes, storesRes, productsRes, categoriesRes]) => {
+      .then(([salesRes, storesRes, productsRes]) => {
         setSales(salesRes.data);
         setStores(storesRes.data);
         setProducts(productsRes.data);
-        setCategories(categoriesRes.data);
         setError(null);
       })
       .catch((err) => setError(err.response?.data?.detail || 'Unable to load sales data.'))
@@ -267,22 +263,22 @@ const Sales = () => {
         <DialogContent>
           <Stack spacing={3} sx={{ pt: 1 }}>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField select required fullWidth label="Store" value={form.storeId} onChange={(e) => setForm({ ...form, storeId: e.target.value })}>
                   {stores.filter(s => s.isActive || String(s.id) === form.storeId).map((s) => <MenuItem key={s.id} value={String(s.id)}>{s.name}</MenuItem>)}
                 </TextField>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField fullWidth label="Customer Name" value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField select fullWidth label="Sales Channel" value={form.salesChannel} onChange={(e) => setForm({ ...form, salesChannel: e.target.value })}>
                   <MenuItem value="Retail Store">Retail Store</MenuItem>
                   <MenuItem value="Online Store">Online Store</MenuItem>
                   <MenuItem value="Marketplace">Marketplace</MenuItem>
                 </TextField>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField select fullWidth label="Payment Method" value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}>
                   <MenuItem value="Cash">Cash</MenuItem>
                   <MenuItem value="Card">Card</MenuItem>
@@ -296,14 +292,14 @@ const Sales = () => {
 
             {form.items.map((item, index) => (
               <Box key={item.id} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+                <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <Typography variant="subtitle2">Item {index + 1}</Typography>
                   {form.items.length > 1 && (
                     <IconButton size="small" color="error" onClick={() => removeItem(item.id)}><DeleteOutlined /></IconButton>
                   )}
                 </Stack>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} md={4}>
+                  <Grid size={{ xs: 12, md: 4 }}>
                     <TextField select required fullWidth label="Product" value={item.productId} onChange={(e) => handleItemChange(item.id, 'productId', e.target.value)}>
                       {products.map((p) => (
                          <MenuItem key={p.id} value={String(p.id)} disabled={!p.status || p.stockQuantity <= 0}>
@@ -312,16 +308,16 @@ const Sales = () => {
                       ))}
                     </TextField>
                   </Grid>
-                  <Grid item xs={6} md={2}>
+                  <Grid size={{ xs: 6, md: 2 }}>
                     <TextField required fullWidth type="number" label="Quantity" value={item.quantity} onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value)} slotProps={{ htmlInput: { min: 1, step: 1 } }} />
                   </Grid>
-                  <Grid item xs={6} md={2}>
+                  <Grid size={{ xs: 6, md: 2 }}>
                     <TextField required fullWidth type="number" label="Unit Price" value={item.unitPrice} onChange={(e) => handleItemChange(item.id, 'unitPrice', e.target.value)} slotProps={{ input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> }, htmlInput: { min: 0, step: '0.01' } }} />
                   </Grid>
-                  <Grid item xs={6} md={2}>
+                  <Grid size={{ xs: 6, md: 2 }}>
                     <TextField fullWidth type="number" label="Discount" value={item.discount} onChange={(e) => handleItemChange(item.id, 'discount', e.target.value)} slotProps={{ input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> }, htmlInput: { min: 0, step: '0.01' } }} />
                   </Grid>
-                  <Grid item xs={6} md={2}>
+                  <Grid size={{ xs: 6, md: 2 }}>
                     <TextField fullWidth type="number" label="Tax" value={item.tax} onChange={(e) => handleItemChange(item.id, 'tax', e.target.value)} slotProps={{ input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> }, htmlInput: { min: 0, step: '0.01' } }} />
                   </Grid>
                 </Grid>
@@ -350,10 +346,10 @@ const Sales = () => {
           {detail && (
             <Stack spacing={2}>
               <Grid container spacing={2}>
-                <Grid item xs={6}><Typography color="text.secondary">Date: {new Date(detail.createdAt).toLocaleString()}</Typography></Grid>
-                <Grid item xs={6}><Typography align="right"><b>Customer:</b> {detail.customerName || '—'}</Typography></Grid>
-                <Grid item xs={6}><Typography><b>Store:</b> {detail.store?.name || 'Unknown'}</Typography></Grid>
-                <Grid item xs={6}><Typography align="right"><b>Channel:</b> {detail.salesChannel}</Typography></Grid>
+                <Grid size={{ xs: 6 }}><Typography color="text.secondary">Date: {new Date(detail.createdAt).toLocaleString()}</Typography></Grid>
+                <Grid size={{ xs: 6 }}><Typography align="right"><b>Customer:</b> {detail.customerName || '—'}</Typography></Grid>
+                <Grid size={{ xs: 6 }}><Typography><b>Store:</b> {detail.store?.name || 'Unknown'}</Typography></Grid>
+                <Grid size={{ xs: 6 }}><Typography align="right"><b>Channel:</b> {detail.salesChannel}</Typography></Grid>
               </Grid>
               <Divider />
               <Typography variant="h6">Items</Typography>

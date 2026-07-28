@@ -65,8 +65,8 @@ def login(login_data: schemas.LoginRequest, request: Request, db: Session = Depe
     if user.status != models.UserStatusEnum.active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
 
-    from datetime import datetime, timezone
-    user.last_login = datetime.now(timezone.utc)
+    from datetime import datetime
+    user.last_login = datetime.utcnow()
 
     access_token = auth.create_access_token(
         data={"user_id": user.id, "company_id": user.company_id}
@@ -91,8 +91,8 @@ def login(login_data: schemas.LoginRequest, request: Request, db: Session = Depe
 def refresh_token(token: str, db: Session = Depends(get_db)):
     db_token = db.query(models.RefreshToken).filter(models.RefreshToken.token == token).first()
 
-    from datetime import datetime, timezone
-    if not db_token or db_token.expires_at < datetime.now(timezone.utc):
+    from datetime import datetime
+    if not db_token or db_token.expires_at < datetime.utcnow():
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token")
 
     try:

@@ -5,6 +5,8 @@ import { TrendingUp, Store as StoreIcon, Inventory as InventoryIcon, AttachMoney
 import { useAuth } from '../context/AuthContext';
 import { axiosPrivate } from '../api/axios';
 
+import { customersApi, CustomerAnalyticsResponse } from '../api/customers';
+
 interface Store { is_active: boolean }
 interface Product { status: boolean }
 interface Category { id: number; name: string }
@@ -30,15 +32,23 @@ const Dashboard = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [customerAnalytics, setCustomerAnalytics] = useState<CustomerAnalyticsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([axiosPrivate.get('/stores/'), axiosPrivate.get('/products/'), axiosPrivate.get('/sales/'), axiosPrivate.get('/categories/')])
-      .then(([storesResponse, productsResponse, salesResponse, categoriesResponse]) => {
+    Promise.all([
+      axiosPrivate.get('/stores/'), 
+      axiosPrivate.get('/products/'), 
+      axiosPrivate.get('/sales/'), 
+      axiosPrivate.get('/categories/'),
+      customersApi.getAnalytics()
+    ])
+      .then(([storesResponse, productsResponse, salesResponse, categoriesResponse, customersResponse]) => {
         setStores(storesResponse.data);
         setProducts(productsResponse.data);
         setSales(salesResponse.data);
         setCategories(categoriesResponse.data);
+        setCustomerAnalytics(customersResponse);
       })
       .catch(() => setError('Unable to load dashboard data.'));
   }, []);
@@ -79,10 +89,10 @@ const Dashboard = () => {
         <Grid item xs={12} sm={6} md={3}><StatCard title="TOTAL REVENUE" value={currency.format(totalRevenue)} icon={<AttachMoney />} /></Grid>
         <Grid item xs={12} sm={6} md={3}><StatCard title="SALES" value={String(sales.length)} icon={<TrendingUp />} /></Grid>
         <Grid item xs={12} sm={6} md={3}><StatCard title="ACTIVE STORES" value={String(stores.filter((store) => store.is_active).length)} icon={<StoreIcon />} /></Grid>
-        <Grid item xs={12} sm={6} md={3}><StatCard title="TOTAL CATEGORIES" value={String(categories.length)} icon={<CategoryIcon />} /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="TOTAL CUSTOMERS" value={String(customerAnalytics?.totalCustomers || 0)} icon={<StoreIcon />} /></Grid>
+        <Grid item xs={12} sm={4}><StatCard title="ACTIVE CUSTOMERS" value={String(customerAnalytics?.activeCustomers || 0)} icon={<TrendingUp />} /></Grid>
         <Grid item xs={12} sm={4}><StatCard title="TOTAL PRODUCTS" value={String(products.length)} icon={<InventoryIcon />} /></Grid>
-        <Grid item xs={12} sm={4}><StatCard title="ACTIVE PRODUCTS" value={String(products.filter(p => p.status).length)} icon={<InventoryIcon />} /></Grid>
-        <Grid item xs={12} sm={4}><StatCard title="INACTIVE PRODUCTS" value={String(products.filter(p => !p.status).length)} icon={<InventoryIcon />} /></Grid>
+        <Grid item xs={12} sm={4}><StatCard title="TOTAL CATEGORIES" value={String(categories.length)} icon={<CategoryIcon />} /></Grid>
       </Grid>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}

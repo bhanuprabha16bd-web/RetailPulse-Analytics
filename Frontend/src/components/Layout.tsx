@@ -15,7 +15,8 @@ import {
     AccountCircle,
     History as HistoryIcon,
     Category as CategoryIcon,
-    Receipt as ReceiptIcon
+    Receipt as ReceiptIcon,
+    People as PeopleIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
@@ -28,6 +29,7 @@ const menuItems = [
     { text: 'Inventory', icon: <InventoryIcon />, path: '/inventory', inventoryOnly: true },
     { text: 'Categories', icon: <CategoryIcon />, path: '/categories', adminOnly: true },
     { text: 'Sales', icon: <ReceiptIcon />, path: '/sales', salesOnly: true },
+    { text: 'Customers', icon: <PeopleIcon />, path: '/customers', customersOnly: true },
     { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
     { text: 'Audit Logs', icon: <HistoryIcon />, path: '/audit-logs', auditOnly: true },
@@ -42,6 +44,7 @@ const Layout = () => {
     const hasAuditAccess = ['Super Admin', 'Company Owner', 'Company Admin'].includes(user?.role ?? '');
     const hasSalesAccess = ['Super Admin', 'Company Owner', 'Company Admin', 'Analyst'].includes(user?.role ?? '');
     const hasInventoryAccess = ['Super Admin', 'Company Owner', 'Company Admin', 'Analyst'].includes(user?.role ?? '');
+    const hasCustomersAccess = ['Super Admin', 'Company Owner', 'Company Admin', 'Analyst'].includes(user?.role ?? '');
 
     const handleDrawerToggle = () => {
         setMobileOpen(!mobileOpen);
@@ -70,7 +73,7 @@ const Layout = () => {
             </Toolbar>
             <Divider />
             <List>
-                {menuItems.filter((item) => (!item.auditOnly || hasAuditAccess) && (!item.adminOnly || hasAuditAccess) && (!(item as any).salesOnly || hasSalesAccess) && (!(item as any).inventoryOnly || hasInventoryAccess)).map((item) => (
+                {menuItems.filter((item) => (!item.auditOnly || hasAuditAccess) && (!item.adminOnly || hasAuditAccess) && (!(item as any).salesOnly || hasSalesAccess) && (!(item as any).inventoryOnly || hasInventoryAccess) && (!(item as any).customersOnly || hasCustomersAccess)).map((item) => (
                     <ListItem key={item.text} disablePadding>
                         <ListItemButton 
                             selected={location.pathname === item.path}
