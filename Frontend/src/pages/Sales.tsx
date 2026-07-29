@@ -9,6 +9,7 @@ import { axiosPrivate } from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 
 interface Store { id: number; name: string; isActive: boolean }
+interface CustomerOption { id: number; fullName: string; customerId: string; status: string }
 interface Product { id: number; name: string; categoryId: number; unitPrice: number; status: boolean; stockQuantity: number }
 interface SaleItem {
   id: number; saleId: number; productId: number; categoryId: number;
@@ -29,7 +30,7 @@ interface SaleItemForm {
 }
 
 interface SaleForm {
-  storeId: string; customerName: string; salesChannel: string; paymentMethod: string;
+  storeId: string; customerId: string; customerName: string; salesChannel: string; paymentMethod: string;
   items: SaleItemForm[];
 }
 
@@ -39,7 +40,7 @@ const emptyItemForm = (): SaleItemForm => ({
 });
 
 const emptyForm: SaleForm = {
-  storeId: '', customerName: '', salesChannel: 'Retail Store', paymentMethod: 'Cash',
+  storeId: '', customerId: '', customerName: '', salesChannel: 'Retail Store', paymentMethod: 'Cash',
   items: [emptyItemForm()]
 };
 
@@ -50,6 +51,7 @@ const Sales = () => {
   const { user } = useAuth();
   const [sales, setSales] = useState<Sale[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
+  const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   
   const [loading, setLoading] = useState(true);
@@ -67,12 +69,14 @@ const Sales = () => {
     Promise.all([
       axiosPrivate.get<Sale[]>('/sales/'),
       axiosPrivate.get<Store[]>('/stores/'),
-      axiosPrivate.get<Product[]>('/products/')
+      axiosPrivate.get<Product[]>('/products/'),
+      axiosPrivate.get<CustomerOption[]>('/customers/')
     ])
-      .then(([salesRes, storesRes, productsRes]) => {
+      .then(([salesRes, storesRes, productsRes, customersRes]) => {
         setSales(salesRes.data);
         setStores(storesRes.data);
         setProducts(productsRes.data);
+        setCustomers(customersRes.data);
         setError(null);
       })
       .catch((err) => setError(err.response?.data?.detail || 'Unable to load sales data.'))
@@ -99,6 +103,7 @@ const Sales = () => {
     setForm({
       ...emptyForm,
       storeId: String(stores.find(s => s.isActive)?.id ?? ''),
+      customerId: '',
       items: [{
         ...emptyItemForm(),
         productId: String(products.find(p => p.status && p.stockQuantity > 0)?.id ?? '')
@@ -149,6 +154,7 @@ const Sales = () => {
     try {
       const payload = {
         storeId: Number(form.storeId),
+        customerId: form.customerId ? Number(form.customerId) : null,
         customerName: form.customerName.trim() || null,
         salesChannel: form.salesChannel,
         paymentMethod: form.paymentMethod,
@@ -269,8 +275,23 @@ const Sales = () => {
                 </TextField>
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField fullWidth label="Customer Name" value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} />
+                <TextField select fullWidth label="Customer" value={form.customerId} onChange={(e) => {
+                  const selectedCustomer = customers.find(customer => customer.id === Number(e.target.value));
+                  setForm({ ...form, customerId: e.target.value, customerName: selectedCustomer?.fullName ?? '' });
+                }}>
+                  <MenuItem value="">Walk-in / unlinked sale</MenuItem>
+                  {customers.filter(customer => customer.status === 'Active').map((customer) => (
+                    <MenuItem key={customer.id} value={String(customer.id)}>
+                      {customer.fullName} ({customer.customerId})
+                    </MenuItem>
+                  ))}
+                </TextField>
               </Grid>
+              {!form.customerId && (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField fullWidth label="Walk-in customer name (optional)" value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} />
+                </Grid>
+              )}
               <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField select fullWidth label="Sales Channel" value={form.salesChannel} onChange={(e) => setForm({ ...form, salesChannel: e.target.value })}>
                   <MenuItem value="Retail Store">Retail Store</MenuItem>

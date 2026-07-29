@@ -20,6 +20,7 @@ import Inventory from './pages/Inventory';
 import CustomersList from './pages/Customers/CustomersList';
 import CustomerProfile from './pages/Customers/CustomerProfile';
 import CustomerAnalytics from './pages/Customers/CustomerAnalytics';
+import Forecasts from './pages/Forecasts';
 import Layout from './components/Layout';
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ function App() {
                   <Route path="/customers/analytics" element={<CustomerAnalytics />} />
                   <Route path="/customers/:id" element={<CustomerProfile />} />
                   <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/forecasts" element={<Forecasts />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/audit-logs" element={<AuditLogs />} />
                   <Route path="/settings" element={<div>Settings Page Placeholder</div>} />

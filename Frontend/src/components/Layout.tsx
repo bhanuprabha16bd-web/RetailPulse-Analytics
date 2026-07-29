@@ -31,6 +31,7 @@ const menuItems = [
     { text: 'Sales', icon: <ReceiptIcon />, path: '/sales', salesOnly: true },
     { text: 'Customers', icon: <PeopleIcon />, path: '/customers', customersOnly: true },
     { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },
+    { text: 'Demand Forecasting', icon: <AnalyticsIcon />, path: '/forecasts', salesOnly: true },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
     { text: 'Audit Logs', icon: <HistoryIcon />, path: '/audit-logs', auditOnly: true },
 ];

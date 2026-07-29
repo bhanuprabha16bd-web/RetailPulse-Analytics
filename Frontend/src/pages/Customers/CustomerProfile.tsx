@@ -49,7 +49,7 @@ const CustomerProfile = () => {
     );
   }
 
-  const { customer, totalOrders, totalRevenueGenerated, averageOrderValue, totalQuantityPurchased, lastPurchaseDate, firstPurchaseDate, recentTransactions, mostFrequentlyPurchasedProducts, favoriteCategory, favoriteProduct, purchaseFrequencyDays } = data;
+  const { customer, totalOrders, totalRevenueGenerated, averageOrderValue, totalQuantityPurchased, lastPurchaseDate, firstPurchaseDate, recentOrders, recentPurchases, recentPayments, mostFrequentlyPurchasedProducts, favoriteCategory, favoriteProduct, purchaseFrequencyDays } = data;
 
   const segmentColors: Record<string, 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'> = {
     'New Customer': 'default',
@@ -71,7 +71,7 @@ const CustomerProfile = () => {
         <Grid item xs={12} md={4}>
           <Card elevation={2} sx={{ height: '100%' }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>Personal Information</Typography>
+              <Typography variant="h6" gutterBottom>Personal & Contact Information</Typography>
               <Divider sx={{ mb: 2 }} />
               
               <Stack spacing={2}>
@@ -104,6 +104,16 @@ const CustomerProfile = () => {
                     {customer.gender ? ` • ${customer.gender}` : ''}
                   </Typography>
                 </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ width: 100 }}>Customer Type:</Typography>
+                  <Typography variant="body2">{customer.customerType}</Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ width: 100 }}>Status:</Typography>
+                  <Typography variant="body2">{customer.status}</Typography>
+                </Box>
               </Stack>
 
               <Typography variant="h6" sx={{ mt: 4, mb: 1 }}>Segmentation</Typography>
@@ -119,6 +129,7 @@ const CustomerProfile = () => {
 
         {/* Right Column - Analytics & Transactions */}
         <Grid item xs={12} md={8}>
+          <Typography variant="h6" sx={{ mb: 1 }}>Business Information</Typography>
           <Grid container spacing={2} sx={{ mb: 3 }}>
             {/* KPI Cards */}
             <Grid item xs={12} sm={4}>
@@ -132,7 +143,7 @@ const CustomerProfile = () => {
               <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', bgcolor: 'success.light', color: 'success.contrastText' }}>
                 <AttachMoney fontSize="large" sx={{ mb: 1, opacity: 0.8 }} />
                 <Typography variant="h4" fontWeight="bold">${totalRevenueGenerated.toFixed(2)}</Typography>
-                <Typography variant="body2">Total Revenue</Typography>
+                <Typography variant="body2">Lifetime Revenue</Typography>
               </Paper>
             </Grid>
             <Grid item xs={12} sm={4}>
@@ -190,11 +201,11 @@ const CustomerProfile = () => {
           </Card>
 
           <Grid container spacing={3}>
-            {/* Recent Transactions Table */}
+            {/* Recent Orders */}
             <Grid item xs={12}>
               <Card elevation={2}>
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>Recent Transactions</Typography>
+                  <Typography variant="h6" gutterBottom>Recent Orders</Typography>
                   <TableContainer>
                     <Table size="small">
                       <TableHead>
@@ -206,7 +217,7 @@ const CustomerProfile = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {recentTransactions.map((tx) => (
+                        {recentOrders.map((tx) => (
                           <TableRow key={tx.id}>
                             <TableCell>{tx.invoiceNumber}</TableCell>
                             <TableCell>{new Date(tx.createdAt).toLocaleDateString()}</TableCell>
@@ -214,11 +225,59 @@ const CustomerProfile = () => {
                             <TableCell align="right" sx={{ fontWeight: 'bold' }}>${tx.totalAmount.toFixed(2)}</TableCell>
                           </TableRow>
                         ))}
-                        {recentTransactions.length === 0 && (
+                        {recentOrders.length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={4} align="center" sx={{ py: 3 }}>No transactions found.</TableCell>
+                            <TableCell colSpan={4} align="center" sx={{ py: 3 }}>No orders found.</TableCell>
                           </TableRow>
                         )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Recent Purchases */}
+            <Grid item xs={12} md={6}>
+              <Card elevation={2}>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>Recent Purchases</Typography>
+                  <TableContainer>
+                    <Table size="small">
+                      <TableHead><TableRow><TableCell>Product</TableCell><TableCell>Invoice</TableCell><TableCell align="right">Quantity</TableCell></TableRow></TableHead>
+                      <TableBody>
+                        {recentPurchases.map((purchase) => (
+                          <TableRow key={purchase.id}>
+                            <TableCell>{purchase.productName}</TableCell>
+                            <TableCell>{purchase.invoiceNumber}</TableCell>
+                            <TableCell align="right">{purchase.quantity}</TableCell>
+                          </TableRow>
+                        ))}
+                        {!recentPurchases.length && <TableRow><TableCell colSpan={3} align="center" sx={{ py: 3 }}>No purchases found.</TableCell></TableRow>}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Recent Payments */}
+            <Grid item xs={12} md={6}>
+              <Card elevation={2}>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>Recent Payments</Typography>
+                  <TableContainer>
+                    <Table size="small">
+                      <TableHead><TableRow><TableCell>Invoice</TableCell><TableCell>Method</TableCell><TableCell align="right">Amount</TableCell></TableRow></TableHead>
+                      <TableBody>
+                        {recentPayments.map((payment) => (
+                          <TableRow key={payment.id}>
+                            <TableCell>{payment.invoiceNumber}</TableCell>
+                            <TableCell>{payment.paymentMethod}</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>${payment.totalAmount.toFixed(2)}</TableCell>
+                          </TableRow>
+                        ))}
+                        {!recentPayments.length && <TableRow><TableCell colSpan={3} align="center" sx={{ py: 3 }}>No payments found.</TableCell></TableRow>}
                       </TableBody>
                     </Table>
                   </TableContainer>

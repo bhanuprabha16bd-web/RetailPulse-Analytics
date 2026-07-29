@@ -285,3 +285,27 @@ class CustomerPurchaseSummary(Base):
     customer = relationship("Customer", back_populates="purchase_summary")
     favorite_product = relationship("Product")
     favorite_category = relationship("Category")
+
+class DemandForecast(Base):
+    __tablename__ = "demand_forecasts"
+    __table_args__ = (UniqueConstraint("company_id", "product_id", "forecast_period", name="uq_forecast_company_product_period"),)
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False, index=True)
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=False, index=True)
+    forecast_period = Column(String, nullable=False)
+    predicted_demand = Column(Float, nullable=False)
+    confidence_score = Column(Float, nullable=False)
+    generated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    product = relationship("Product")
+    category = relationship("Category")
+
+class ForecastHistory(Base):
+    __tablename__ = "forecast_history"
+    id = Column(Integer, primary_key=True, index=True)
+    forecast_id = Column(Integer, ForeignKey("demand_forecasts.id"), nullable=False, index=True)
+    historical_sales = Column(Float, nullable=False)
+    prediction = Column(Float, nullable=False)
+    accuracy = Column(Float, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    forecast = relationship("DemandForecast")

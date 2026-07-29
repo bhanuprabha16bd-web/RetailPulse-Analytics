@@ -36,8 +36,18 @@ def get_customer_analytics(
         if c.created_at and c.created_at.month == current_month and c.created_at.year == current_year:
             new_customers_count += 1
             
-    # Returning customers (more than 1 order)
-    returning_customers = customers_query.filter(models.Customer.segment.in_([models.CustomerSegmentEnum.regular, models.CustomerSegmentEnum.loyal, models.CustomerSegmentEnum.vip])).count()
+    # Use linked sales as the source of truth for customer-order metrics.
+    # This does not depend on cached purchase summaries being up to date.
+    customer_sales = db.query(
+        models.Sale.customer_id,
+        func.count(models.Sale.id).label("orders"),
+        func.sum(models.Sale.total_amount).label("revenue"),
+    ).filter(
+        models.Sale.company_id == current_user.company_id,
+        models.Sale.customer_id.isnot(None),
+    ).group_by(models.Sale.customer_id).all()
+    sales_by_customer = {row.customer_id: {"orders": int(row.orders), "revenue": float(row.revenue or 0)} for row in customer_sales}
+    returning_customers = sum(1 for metrics in sales_by_customer.values() if metrics["orders"] > 1)
     
     total_revenue = db.query(func.sum(models.Sale.total_amount)).filter(models.Sale.company_id == current_user.company_id, models.Sale.customer_id.isnot(None)).scalar() or 0.0
     average_customer_spend = total_revenue / total_customers if total_customers > 0 else 0.0
@@ -110,10 +120,19 @@ def get_customer_analytics(
     
     # Purchase Frequency Distribution
     freq_dist = [
-        {"name": "1 Order", "value": total_customers - returning_customers},
-        {"name": "2-4 Orders", "value": next((s["value"] for s in segment_distribution if s["name"] == "Regular Customer"), 0)},
-        {"name": "5-9 Orders", "value": next((s["value"] for s in segment_distribution if s["name"] == "Loyal Customer"), 0)},
-        {"name": "10+ Orders", "value": next((s["value"] for s in segment_distribution if s["name"] == "VIP Customer"), 0)},
+        {"name": "No Orders", "value": total_customers - len(sales_by_customer)},
+        {"name": "1 Order", "value": sum(1 for metrics in sales_by_customer.values() if metrics["orders"] == 1)},
+        {"name": "2-4 Orders", "value": sum(1 for metrics in sales_by_customer.values() if 2 <= metrics["orders"] <= 4)},
+        {"name": "5-9 Orders", "value": sum(1 for metrics in sales_by_customer.values() if 5 <= metrics["orders"] <= 9)},
+        {"name": "10+ Orders", "value": sum(1 for metrics in sales_by_customer.values() if metrics["orders"] >= 10)},
+    ]
+
+    spending_distribution = [
+        {"name": "No Spend", "value": total_customers - len(sales_by_customer)},
+        {"name": "₹1–₹1,000", "value": sum(1 for metrics in sales_by_customer.values() if 0 < metrics["revenue"] <= 1000)},
+        {"name": "₹1,001–₹5,000", "value": sum(1 for metrics in sales_by_customer.values() if 1000 < metrics["revenue"] <= 5000)},
+        {"name": "₹5,001–₹10,000", "value": sum(1 for metrics in sales_by_customer.values() if 5000 < metrics["revenue"] <= 10000)},
+        {"name": "₹10,000+", "value": sum(1 for metrics in sales_by_customer.values() if metrics["revenue"] > 10000)},
     ]
 
     return {
@@ -132,7 +151,8 @@ def get_customer_analytics(
         "purchase_frequency_distribution": freq_dist,
         "location_distribution": location_distribution,
         "monthly_acquisition": monthly_acquisition,
-        "segment_distribution": segment_distribution
+        "segment_distribution": segment_distribution,
+        "spending_distribution": spending_distribution,
     }
 
 @router.get("/", response_model=List[schemas.CustomerOut])
@@ -270,20 +290,52 @@ def get_customer(
 
     summary = customer.purchase_summary
     if not summary:
-        # Fallback if migration missed something
+        # A summary is normally created with the customer, but keep profiles
+        # available for records created before that migration.
         summary = models.CustomerPurchaseSummary(customer_id=customer_id)
-        
-    fav_cat = summary.favorite_category.name if summary.favorite_category else None
-    fav_prod = summary.favorite_product.name if summary.favorite_product else None
 
-    # Recent transactions
+    # Build the history from sales rather than only trusting the denormalized
+    # summary. This keeps profiles correct as soon as a sale is recorded.
     sales_query = dependencies.scope_company_query(
         db.query(models.Sale).filter(models.Sale.customer_id == customer_id),
         current_user,
         models.Sale
     )
-    
+    sales = sales_query.all()
+    sale_ids = [sale.id for sale in sales]
+    total_orders = len(sales)
+    total_revenue = float(sum(sale.total_amount for sale in sales))
+    total_quantity = int(
+        db.query(func.sum(models.SaleItem.quantity))
+        .filter(models.SaleItem.sale_id.in_(sale_ids))
+        .scalar() or 0
+    ) if sale_ids else 0
+    first_purchase_date = min((sale.created_at for sale in sales), default=None)
+    last_purchase_date = max((sale.created_at for sale in sales), default=None)
+
+    product_counts = []
+    if sale_ids:
+        product_counts = (
+            db.query(
+                models.Product.name.label("product_name"),
+                func.sum(models.SaleItem.quantity).label("count"),
+            )
+            .join(models.Product, models.Product.id == models.SaleItem.product_id)
+            .filter(models.SaleItem.sale_id.in_(sale_ids))
+            .group_by(models.Product.id, models.Product.name)
+            .order_by(desc("count"), models.Product.name.asc())
+            .limit(5)
+            .all()
+        )
+
+    fav_cat = summary.favorite_category.name if summary.favorite_category else None
+    fav_prod = product_counts[0].product_name if product_counts else None
+
+    # Recent activity is derived from the same linked invoices so orders,
+    # purchased products, and payments always move together.
     recent_transactions = []
+    recent_purchases = []
+    recent_payments = []
     recent_sales = sales_query.order_by(models.Sale.created_at.desc()).limit(5).all()
     for sale in recent_sales:
         items_count = db.query(func.sum(models.SaleItem.quantity)).filter(models.SaleItem.sale_id == sale.id).scalar() or 0
@@ -294,25 +346,44 @@ def get_customer(
             "created_at": sale.created_at,
             "items_count": items_count
         })
+        recent_payments.append({
+            "id": sale.id,
+            "invoice_number": sale.invoice_number,
+            "payment_method": sale.payment_method.value,
+            "total_amount": sale.total_amount,
+            "created_at": sale.created_at,
+        })
+        for item in sale.items:
+            recent_purchases.append({
+                "id": item.id,
+                "invoice_number": sale.invoice_number,
+                "product_name": item.product.name if item.product else "Unknown product",
+                "quantity": item.quantity,
+                "total_amount": item.total,
+                "created_at": sale.created_at,
+            })
 
-    # For most frequently purchased (we just return favorite product since we are caching it)
-    frequent_products = []
-    if fav_prod:
-        frequent_products = [{"product_name": fav_prod, "count": 1}] # Simplified for caching
+    recent_purchases = recent_purchases[:5]
 
     return {
         "customer": customer,
-        "total_orders": summary.total_orders,
-        "total_revenue_generated": summary.total_revenue,
-        "total_quantity_purchased": summary.total_products_purchased,
-        "average_order_value": summary.average_order_value,
-        "last_purchase_date": summary.last_purchase_date,
-        "first_purchase_date": summary.first_purchase_date,
+        "total_orders": total_orders,
+        "total_revenue_generated": total_revenue,
+        "total_quantity_purchased": total_quantity,
+        "average_order_value": total_revenue / total_orders if total_orders else 0.0,
+        "last_purchase_date": last_purchase_date,
+        "first_purchase_date": first_purchase_date,
         "favorite_category": fav_cat,
         "favorite_product": fav_prod,
         "purchase_frequency_days": summary.purchase_frequency,
-        "most_frequently_purchased_products": frequent_products,
-        "recent_transactions": recent_transactions
+        "most_frequently_purchased_products": [
+            {"product_name": product.product_name, "count": int(product.count)}
+            for product in product_counts
+        ],
+        "recent_transactions": recent_transactions,
+        "recent_orders": recent_transactions,
+        "recent_purchases": recent_purchases,
+        "recent_payments": recent_payments,
     }
 
 @router.put("/{customer_id}", response_model=schemas.CustomerOut)

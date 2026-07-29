@@ -490,6 +490,21 @@ class RecentTransaction(BaseModel):
     created_at: datetime
     items_count: int
 
+class RecentPurchase(BaseModel):
+    id: int
+    invoice_number: str
+    product_name: str
+    quantity: int
+    total_amount: float
+    created_at: datetime
+
+class RecentPayment(BaseModel):
+    id: int
+    invoice_number: str
+    payment_method: str
+    total_amount: float
+    created_at: datetime
+
 class CustomerStatsResponse(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
     customer: CustomerOut
@@ -504,6 +519,9 @@ class CustomerStatsResponse(BaseModel):
     purchase_frequency_days: Optional[float] = None
     most_frequently_purchased_products: list[ProductPurchasedCount] = []
     recent_transactions: list[RecentTransaction] = []
+    recent_orders: list[RecentTransaction] = []
+    recent_purchases: list[RecentPurchase] = []
+    recent_payments: list[RecentPayment] = []
 
 class ChartDataPoint(BaseModel):
     name: str
@@ -527,3 +545,4 @@ class CustomerAnalyticsResponse(BaseModel):
     location_distribution: list[ChartDataPoint]
     monthly_acquisition: list[ChartDataPoint]
     segment_distribution: list[ChartDataPoint]
+    spending_distribution: list[ChartDataPoint]

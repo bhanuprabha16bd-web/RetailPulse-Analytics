@@ -40,6 +40,28 @@ export interface CustomerStatsResponse {
         createdAt: string;
         itemsCount: number;
     }[];
+    recentOrders: {
+        id: number;
+        invoiceNumber: string;
+        totalAmount: number;
+        createdAt: string;
+        itemsCount: number;
+    }[];
+    recentPurchases: {
+        id: number;
+        invoiceNumber: string;
+        productName: string;
+        quantity: number;
+        totalAmount: number;
+        createdAt: string;
+    }[];
+    recentPayments: {
+        id: number;
+        invoiceNumber: string;
+        paymentMethod: string;
+        totalAmount: number;
+        createdAt: string;
+    }[];
 }
 
 export interface ChartDataPoint {
@@ -64,6 +86,7 @@ export interface CustomerAnalyticsResponse {
     locationDistribution: ChartDataPoint[];
     monthlyAcquisition: ChartDataPoint[];
     segmentDistribution: ChartDataPoint[];
+    spendingDistribution: ChartDataPoint[];
 }
 
 export interface CustomerTimelineEvent {
