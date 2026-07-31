@@ -1,12 +1,42 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ComponentProps, type CSSProperties } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box, Button, Card, CardContent, CircularProgress, Divider, Grid, Paper,
-  Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Typography, Chip, Alert
+  Box, Button, Card, CardContent, CircularProgress, Divider, Grid as MuiGrid, Paper,
+  Stack as MuiStack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Typography as MuiTypography, Chip, Alert
 } from '@mui/material';
 import { ArrowBack, Email, Phone, LocationOn, CalendarToday, ShoppingCart, AttachMoney, TrendingUp, Stars, Category, Update } from '@mui/icons-material';
 import { customersApi, CustomerStatsResponse, CustomerTimelineEvent } from '../../api/customers';
+
+type LegacyGridProps = ComponentProps<typeof MuiGrid> & {
+  item?: boolean;
+  xs?: number;
+  sm?: number;
+  md?: number;
+  lg?: number;
+};
+
+const Grid = ({ item: _item, xs, sm, md, lg, size, ...props }: LegacyGridProps) => {
+  const legacySize = xs !== undefined || sm !== undefined || md !== undefined || lg !== undefined
+    ? { xs, sm, md, lg }
+    : undefined;
+  return <MuiGrid {...props} size={size ?? legacySize} />;
+};
+
+type LegacyTypographyProps = ComponentProps<typeof MuiTypography> & {
+  fontWeight?: string | number;
+  textAlign?: CSSProperties['textAlign'];
+};
+
+const Typography = ({ fontWeight, textAlign, sx, ...props }: LegacyTypographyProps) => (
+  <MuiTypography {...props} sx={{ ...(sx as any), fontWeight, textAlign }} />
+);
+
+type LegacyStackProps = ComponentProps<typeof MuiStack> & { flexWrap?: CSSProperties['flexWrap'] };
+
+const Stack = ({ flexWrap, sx, ...props }: LegacyStackProps) => (
+  <MuiStack {...props} sx={{ ...(sx as any), flexWrap }} />
+);
 
 const CustomerProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -328,7 +358,7 @@ const CustomerProfile = () => {
                   
                   {timeline.length > 0 ? (
                     <Box sx={{ ml: 1, borderLeft: '2px solid', borderColor: 'divider', pl: 3, position: 'relative' }}>
-                      {timeline.map((event, index) => (
+                      {timeline.map((event) => (
                         <Box key={event.id} sx={{ mb: 3, position: 'relative' }}>
                           <Box sx={{
                             position: 'absolute',

@@ -75,8 +75,6 @@ def generate(db, user, period: str, refresh: bool = False):
     created = 0
     for product in products:
         historical = db.query(func.sum(models.SaleItem.quantity)).join(models.Sale).filter(models.Sale.company_id == user.company_id, models.SaleItem.product_id == product.id, models.Sale.created_at >= since).scalar() or 0
-        if not historical:
-            continue
         predicted = round((float(historical) / 90) * horizon, 2)
         existing = db.query(models.DemandForecast).filter_by(company_id=user.company_id, product_id=product.id, forecast_period=period).first()
         if existing and not refresh:
@@ -85,7 +83,7 @@ def generate(db, user, period: str, refresh: bool = False):
         forecast.predicted_demand, forecast.confidence_score = predicted, round(min(95, 60 + min(35, historical)), 1)
         db.add(forecast); db.flush()
         db.add(models.ForecastHistory(forecast_id=forecast.id, historical_sales=float(historical), prediction=predicted, accuracy=forecast.confidence_score))
-        if predicted >= product.stock_quantity:
+        if predicted > 0 and predicted >= product.stock_quantity:
             db.add(models.Notification(company_id=user.company_id, message=f"Forecast alert: {product.name} may run out of stock in the next {horizon} days."))
         created += 1
     if not created:
