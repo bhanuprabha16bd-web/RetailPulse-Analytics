@@ -1,11 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, or_
+from datetime import datetime
 from typing import List, Optional
 import models, schemas, dependencies, audit
 from database import get_db
 
 router = APIRouter(prefix="/api/customers", tags=["customers"])
+
+def active_customers_query(db: Session, current_user: models.User):
+    """Customers are retained for reporting, but hidden after a soft delete."""
+    return dependencies.scope_company_query(db.query(models.Customer), current_user, models.Customer).filter(
+        models.Customer.is_deleted.is_(False)
+    )
 
 def generate_customer_id(db: Session, company_id: int) -> str:
     count = db.query(models.Customer).filter(models.Customer.company_id == company_id).count()
@@ -19,7 +26,7 @@ def get_customer_analytics(
     from datetime import datetime
     import calendar
     
-    customers_query = dependencies.scope_company_query(db.query(models.Customer), current_user, models.Customer)
+    customers_query = active_customers_query(db, current_user)
     sales_query = dependencies.scope_company_query(db.query(models.Sale), current_user, models.Sale).filter(models.Sale.customer_id.isnot(None))
     
     total_customers = customers_query.count()
@@ -86,7 +93,7 @@ def get_customer_analytics(
     rev_by_type = db.query(
         models.Customer.customer_type, func.sum(models.Sale.total_amount).label('rev')
     ).join(models.Sale, models.Customer.id == models.Sale.customer_id)\
-     .filter(models.Customer.company_id == current_user.company_id)\
+     .filter(models.Customer.company_id == current_user.company_id, models.Customer.is_deleted.is_(False))\
      .group_by(models.Customer.customer_type).all()
      
     revenue_by_type = [{"name": str(r.customer_type.value), "value": float(r.rev)} for r in rev_by_type if r.rev]
@@ -95,7 +102,7 @@ def get_customer_analytics(
     top_c = db.query(
         models.Customer.full_name, func.sum(models.Sale.total_amount).label('rev')
     ).join(models.Sale, models.Customer.id == models.Sale.customer_id)\
-     .filter(models.Customer.company_id == current_user.company_id)\
+     .filter(models.Customer.company_id == current_user.company_id, models.Customer.is_deleted.is_(False))\
      .group_by(models.Customer.id, models.Customer.full_name)\
      .order_by(desc('rev')).limit(10).all()
      
@@ -104,7 +111,7 @@ def get_customer_analytics(
     # Segment Distribution
     seg_dist = db.query(
         models.Customer.segment, func.count(models.Customer.id).label('cnt')
-    ).filter(models.Customer.company_id == current_user.company_id)\
+    ).filter(models.Customer.company_id == current_user.company_id, models.Customer.is_deleted.is_(False))\
      .group_by(models.Customer.segment).all()
      
     segment_distribution = [{"name": str(s.segment.value), "value": int(s.cnt)} for s in seg_dist]
@@ -112,7 +119,7 @@ def get_customer_analytics(
     # Location Distribution (City)
     loc_dist = db.query(
         models.Customer.city, func.count(models.Customer.id).label('cnt')
-    ).filter(models.Customer.company_id == current_user.company_id, models.Customer.city.isnot(None))\
+    ).filter(models.Customer.company_id == current_user.company_id, models.Customer.is_deleted.is_(False), models.Customer.city.isnot(None))\
      .group_by(models.Customer.city)\
      .order_by(desc('cnt')).limit(10).all()
      
@@ -171,7 +178,7 @@ def get_customers(
     current_user: models.User = Depends(dependencies.get_current_company_user)
 ):
     from datetime import datetime
-    query = dependencies.scope_company_query(db.query(models.Customer), current_user, models.Customer)
+    query = active_customers_query(db, current_user)
     
     # Needs a join if sorting by total orders/spend
     if sort_by in ["total_orders", "total_spend", "last_purchase"]:
@@ -235,21 +242,17 @@ def create_customer(
 ):
     if customer.email:
         existing_email = dependencies.scope_company_query(
-            db.query(models.Customer).filter(models.Customer.email == customer.email), 
-            current_user, 
-            models.Customer
-        ).first()
+            db.query(models.Customer).filter(models.Customer.email == customer.email, models.Customer.is_deleted.is_(False)), 
+            current_user, models.Customer).first()
         if existing_email:
-            raise HTTPException(status_code=400, detail="Customer with this email already exists")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Customer with this email already exists")
 
     if customer.phone:
         existing_phone = dependencies.scope_company_query(
-            db.query(models.Customer).filter(models.Customer.phone == customer.phone), 
-            current_user, 
-            models.Customer
-        ).first()
+            db.query(models.Customer).filter(models.Customer.phone == customer.phone, models.Customer.is_deleted.is_(False)), 
+            current_user, models.Customer).first()
         if existing_phone:
-            raise HTTPException(status_code=400, detail="Customer with this phone number already exists")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Customer with this phone number already exists")
 
     new_customer = models.Customer(
         **customer.model_dump(),
@@ -279,11 +282,7 @@ def get_customer(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(dependencies.get_current_company_user)
 ):
-    customer = dependencies.scope_company_query(
-        db.query(models.Customer).filter(models.Customer.id == customer_id),
-        current_user,
-        models.Customer
-    ).first()
+    customer = active_customers_query(db, current_user).filter(models.Customer.id == customer_id).first()
     
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -394,32 +393,28 @@ def update_customer(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(dependencies.get_current_company_user)
 ):
-    customer = dependencies.scope_company_query(
-        db.query(models.Customer).filter(models.Customer.id == customer_id),
-        current_user,
-        models.Customer
-    ).first()
+    customer = active_customers_query(db, current_user).filter(models.Customer.id == customer_id).first()
     
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
         
     if customer_update.email and customer_update.email != customer.email:
         existing_email = dependencies.scope_company_query(
-            db.query(models.Customer).filter(models.Customer.email == customer_update.email),
+            db.query(models.Customer).filter(models.Customer.email == customer_update.email, models.Customer.is_deleted.is_(False)),
             current_user,
             models.Customer
         ).first()
         if existing_email:
-            raise HTTPException(status_code=400, detail="Customer with this email already exists")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Customer with this email already exists")
 
     if customer_update.phone and customer_update.phone != customer.phone:
         existing_phone = dependencies.scope_company_query(
-            db.query(models.Customer).filter(models.Customer.phone == customer_update.phone),
+            db.query(models.Customer).filter(models.Customer.phone == customer_update.phone, models.Customer.is_deleted.is_(False)),
             current_user,
             models.Customer
         ).first()
         if existing_phone:
-            raise HTTPException(status_code=400, detail="Customer with this phone number already exists")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Customer with this phone number already exists")
 
     status_changed = False
     if 'status' in customer_update.model_dump(exclude_unset=True) and customer_update.status != customer.status:
@@ -445,11 +440,7 @@ def toggle_customer_status(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(dependencies.get_current_company_user)
 ):
-    customer = dependencies.scope_company_query(
-        db.query(models.Customer).filter(models.Customer.id == customer_id),
-        current_user,
-        models.Customer
-    ).first()
+    customer = active_customers_query(db, current_user).filter(models.Customer.id == customer_id).first()
     
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -476,16 +467,13 @@ def delete_customer(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(dependencies.get_current_company_user)
 ):
-    customer = dependencies.scope_company_query(
-        db.query(models.Customer).filter(models.Customer.id == customer_id),
-        current_user,
-        models.Customer
-    ).first()
+    customer = active_customers_query(db, current_user).filter(models.Customer.id == customer_id).first()
     
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
         
-    db.delete(customer)
+    customer.is_deleted = True
+    customer.deleted_at = datetime.utcnow()
     db.commit()
     
     audit.record_audit_log(db, request, current_user, "Customer Deleted", target_name=customer.full_name)
@@ -502,7 +490,7 @@ def export_customers_list(
     current_user: models.User = Depends(dependencies.get_current_company_user)
 ):
     customers = dependencies.scope_company_query(
-        db.query(models.Customer).outerjoin(models.CustomerPurchaseSummary),
+        db.query(models.Customer).outerjoin(models.CustomerPurchaseSummary).filter(models.Customer.is_deleted.is_(False)),
         current_user,
         models.Customer
     ).all()
@@ -527,7 +515,7 @@ def get_customer_timeline(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(dependencies.get_current_company_user)
 ):
-    customer = dependencies.scope_company_query(db.query(models.Customer).filter(models.Customer.id == customer_id), current_user, models.Customer).first()
+    customer = active_customers_query(db, current_user).filter(models.Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
         

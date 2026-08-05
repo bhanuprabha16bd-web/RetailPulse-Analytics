@@ -17,6 +17,7 @@ async def lifespan(app: FastAPI):
     database.migrate_audit_schema()
     database.migrate_customers_schema()
     database.migrate_customers_segment_schema()
+    database.migrate_customer_management_schema()
     database.migrate_customer_purchase_summary_schema()
     yield
 

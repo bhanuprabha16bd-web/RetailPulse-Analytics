@@ -255,10 +255,13 @@ class Customer(Base):
     city = Column(String, nullable=True)
     state = Column(String, nullable=True)
     country = Column(String, nullable=True)
+    postal_code = Column(String, nullable=True)
     customer_type = Column(Enum(CustomerTypeEnum), default=CustomerTypeEnum.retail)
     preferred_sales_channel = Column(Enum(SalesChannelEnum), default=SalesChannelEnum.retail_store)
     status = Column(Enum(CustomerStatusEnum), default=CustomerStatusEnum.active)
     segment = Column(Enum(CustomerSegmentEnum), default=CustomerSegmentEnum.new)
+    is_deleted = Column(Boolean, default=False, nullable=False, index=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

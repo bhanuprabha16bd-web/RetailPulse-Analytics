@@ -13,12 +13,14 @@ export interface Customer {
     city: string | null;
     state: string | null;
     country: string | null;
+    postalCode?: string | null;
     customerType: 'Retail' | 'Wholesale' | 'Corporate';
     preferredSalesChannel: 'Retail Store' | 'Online Store' | 'Marketplace';
     status: 'Active' | 'Inactive';
     segment: 'New Customer' | 'Regular Customer' | 'Loyal Customer' | 'VIP Customer';
     createdAt: string;
     updatedAt: string | null;
+    purchaseSummary?: { totalOrders: number; totalRevenue: number } | null;
 }
 
 export interface CustomerStatsResponse {

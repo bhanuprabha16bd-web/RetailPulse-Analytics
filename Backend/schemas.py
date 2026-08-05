@@ -431,25 +431,34 @@ from models import CustomerTypeEnum, CustomerStatusEnum, CustomerSegmentEnum
 
 class CustomerBase(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
-    full_name: str
+    full_name: str = Field(min_length=2, max_length=120)
     email: EmailStr
-    phone: str
+    phone: str = Field(min_length=7, max_length=20, pattern=r"^\+?[0-9][0-9 ()-]{6,19}$")
     date_of_birth: Optional[datetime] = None
     gender: Optional[str] = None
     address: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
     country: Optional[str] = None
+    postal_code: Optional[str] = None
     customer_type: CustomerTypeEnum
     preferred_sales_channel: Optional[SalesChannelEnum] = None
     status: Optional[CustomerStatusEnum] = CustomerStatusEnum.active
     segment: CustomerSegmentEnum = CustomerSegmentEnum.new
 
 class CustomerCreate(CustomerBase):
-    pass
+    address: str = Field(min_length=2, max_length=250)
+    city: str = Field(min_length=2, max_length=80)
+    state: str = Field(min_length=2, max_length=80)
+    country: str = Field(min_length=2, max_length=80)
+    postal_code: str = Field(min_length=2, max_length=20)
 
 class CustomerUpdate(CustomerBase):
-    pass
+    address: str = Field(min_length=2, max_length=250)
+    city: str = Field(min_length=2, max_length=80)
+    state: str = Field(min_length=2, max_length=80)
+    country: str = Field(min_length=2, max_length=80)
+    postal_code: str = Field(min_length=2, max_length=20)
 
 class CustomerPurchaseSummaryOut(BaseModel):
     model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)

@@ -209,6 +209,20 @@ def migrate_customers_segment_schema():
             # For customers with no sales, the subquery might return NULL depending on how SQLite handles it, so we fallback to 'new'
             connection.execute(text("UPDATE customers SET segment = 'new' WHERE segment IS NULL"))
 
+def migrate_customer_management_schema():
+    """Add non-destructive deletion and postal-code support to existing customer tables."""
+    inspector = inspect(engine)
+    if "customers" not in inspector.get_table_names():
+        return
+    columns = {column["name"] for column in inspector.get_columns("customers")}
+    with engine.begin() as connection:
+        if "postal_code" not in columns:
+            connection.execute(text("ALTER TABLE customers ADD COLUMN postal_code VARCHAR"))
+        if "is_deleted" not in columns:
+            connection.execute(text("ALTER TABLE customers ADD COLUMN is_deleted BOOLEAN NOT NULL DEFAULT 0"))
+        if "deleted_at" not in columns:
+            connection.execute(text("ALTER TABLE customers ADD COLUMN deleted_at DATETIME"))
+
 def migrate_customer_purchase_summary_schema():
     """Create customer_purchase_summary table and backfill it. Also fill missing email/phones."""
     import models
