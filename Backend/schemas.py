@@ -2,7 +2,7 @@ from pydantic import BaseModel, EmailStr, Field, model_validator, ConfigDict
 from pydantic.alias_generators import to_camel
 from typing import Optional
 from datetime import datetime
-from models import RoleEnum, UserStatusEnum, SalesChannelEnum, PaymentMethodEnum
+from models import RoleEnum, UserStatusEnum, SalesChannelEnum, PaymentMethodEnum, PaymentStatusEnum
 
 class CompanyBase(BaseModel):
     name: str
@@ -375,9 +375,16 @@ class SaleBase(BaseModel):
     customer_name: Optional[str] = None
     sales_channel: SalesChannelEnum = SalesChannelEnum.retail_store
     payment_method: PaymentMethodEnum = PaymentMethodEnum.cash
+    payment_status: PaymentStatusEnum = PaymentStatusEnum.paid
+    notes: Optional[str] = None
 
 class SaleCreate(SaleBase):
     items: list[SaleItemCreate]
+
+class SaleUpdate(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
+    payment_status: Optional[PaymentStatusEnum] = None
+    notes: Optional[str] = None
 
 class SaleOut(SaleBase):
     id: int

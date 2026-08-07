@@ -252,6 +252,8 @@ def create_sale(sale_create: schemas.SaleCreate, db: Session = Depends(get_db), 
         customer_name=sale_create.customer_name,
         sales_channel=sale_create.sales_channel,
         payment_method=sale_create.payment_method,
+        payment_status=sale_create.payment_status,
+        notes=sale_create.notes,
         total_amount=total_amount,
         created_by=current_user.id,
         invoice_number=invoice_number,
@@ -287,6 +289,36 @@ def create_sale(sale_create: schemas.SaleCreate, db: Session = Depends(get_db), 
     db.commit()
     db.refresh(new_sale)
     return new_sale
+
+@router.get("/{sale_id}", response_model=schemas.SaleOut)
+def get_sale(sale_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_company_user)):
+    sale = scope_company_query(db.query(models.Sale), current_user, models.Sale).filter(models.Sale.id == sale_id).first()
+    if not sale:
+        raise HTTPException(status_code=404, detail="Sale not found")
+    return sale
+
+@router.put("/{sale_id}", response_model=schemas.SaleOut, dependencies=[Depends(allow_sales_manage)])
+def update_sale(sale_id: int, payload: schemas.SaleUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_company_user)):
+    sale = scope_company_query(db.query(models.Sale), current_user, models.Sale).filter(models.Sale.id == sale_id).first()
+    if not sale:
+        raise HTTPException(status_code=404, detail="Sale not found")
+        
+    if payload.payment_status is not None:
+        sale.payment_status = payload.payment_status
+    if payload.notes is not None:
+        sale.notes = payload.notes
+        
+    audit_upd = models.AuditLog(
+        company_id=current_user.company_id,
+        user_id=current_user.id,
+        action="Sale Updated",
+        target_name=sale.invoice_number
+    )
+    db.add(audit_upd)
+    
+    db.commit()
+    db.refresh(sale)
+    return sale
 
 @router.delete("/{sale_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(allow_sales_manage)])
 def delete_sale(sale_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_company_user)):

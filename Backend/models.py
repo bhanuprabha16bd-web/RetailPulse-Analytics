@@ -33,6 +33,11 @@ class PaymentMethodEnum(str, enum.Enum):
     upi = "UPI"
     bank_transfer = "Bank Transfer"
 
+class PaymentStatusEnum(str, enum.Enum):
+    paid = "Paid"
+    pending = "Pending"
+    overdue = "Overdue"
+
 class CustomerTypeEnum(str, enum.Enum):
     retail = "Retail"
     wholesale = "Wholesale"
@@ -179,6 +184,8 @@ class Sale(Base):
     customer_name = Column(String, nullable=True)
     sales_channel = Column(Enum(SalesChannelEnum), default=SalesChannelEnum.retail_store)
     payment_method = Column(Enum(PaymentMethodEnum), default=PaymentMethodEnum.cash)
+    payment_status = Column(Enum(PaymentStatusEnum), default=PaymentStatusEnum.paid)
+    notes = Column(String, nullable=True)
     total_amount = Column(Float, nullable=False)
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
