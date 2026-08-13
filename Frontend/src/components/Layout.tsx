@@ -30,7 +30,7 @@ const menuItems = [
     { text: 'Categories', icon: <CategoryIcon />, path: '/categories', adminOnly: true },
     { text: 'Sales', icon: <ReceiptIcon />, path: '/sales', salesOnly: true },
     { text: 'Customers', icon: <PeopleIcon />, path: '/customers', customersOnly: true },
-    { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },
+    { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics/sales' },
     { text: 'Demand Forecasting', icon: <AnalyticsIcon />, path: '/forecasts', salesOnly: true },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
     { text: 'Audit Logs', icon: <HistoryIcon />, path: '/audit-logs', auditOnly: true },
