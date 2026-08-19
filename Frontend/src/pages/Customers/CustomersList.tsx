@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputAdornment, MenuItem, Paper, Skeleton, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography } from '@mui/material';
-import { Add, DeleteOutlined, EditOutlined, Search, Visibility } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { Alert, Box, Button, Paper, Stack, Typography } from '@mui/material';
+import { Add } from '@mui/icons-material';
 import { customersApi, Customer } from '../../api/customers';
 import { useAuth } from '../../context/AuthContext';
+import CustomersListFilters from './List/CustomersListFilters';
+import CustomersListTable from './List/CustomersListTable';
+import CustomerFormDialog from './List/CustomerFormDialog';
+import CustomerDeleteDialog from './List/CustomerDeleteDialog';
 
 type Form = { firstName: string; lastName: string; email: string; phone: string; address: string; city: string; state: string; country: string; postalCode: string; customerType: 'Retail' | 'Wholesale' | 'Corporate'; status: 'Active' | 'Inactive' };
 const empty: Form = { firstName: '', lastName: '', email: '', phone: '', address: '', city: '', state: '', country: '', postalCode: '', customerType: 'Retail', status: 'Active' };
@@ -11,7 +14,7 @@ const roles = ['Super Admin', 'Company Owner', 'Company Admin', 'Analyst'];
 const segmentColors: Record<string, 'default' | 'info' | 'primary' | 'secondary'> = { 'New Customer': 'info', 'Regular Customer': 'default', 'Loyal Customer': 'primary', 'VIP Customer': 'secondary' };
 
 export default function CustomersList() {
-  const { user } = useAuth(); const navigate = useNavigate();
+  const { user } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState(''); const [segment, setSegment] = useState(''); const [status, setStatus] = useState(''); const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false); const [editing, setEditing] = useState<Customer | null>(null); const [target, setTarget] = useState<Customer | null>(null); const [form, setForm] = useState<Form>(empty); const [errors, setErrors] = useState<Partial<Record<keyof Form, string>>>({});
@@ -25,6 +28,38 @@ export default function CustomersList() {
   const save = async () => { if (!validate()) { setError('Please correct the highlighted fields.'); return; } setSaving(true); const body = { fullName: `${form.firstName.trim()} ${form.lastName.trim()}`, email: form.email.trim(), phone: form.phone.trim(), address: form.address.trim(), city: form.city.trim(), state: form.state.trim(), country: form.country.trim(), postalCode: form.postalCode.trim(), customerType: form.customerType, preferredSalesChannel: 'Retail Store' as const, status: form.status }; try { editing ? await customersApi.updateCustomer(editing.id, body) : await customersApi.createCustomer(body); setOpen(false); load(); } catch (e: any) { setError(e.response?.data?.detail || 'Failed to save customer. Please try again.'); } finally { setSaving(false); } };
   const remove = async () => { if (!target) return; setSaving(true); try { await customersApi.deleteCustomer(target.id); setTarget(null); load(); } catch (e: any) { setError(e.response?.data?.detail || 'Failed to remove customer.'); } finally { setSaving(false); } };
   if (!roles.includes(user?.role ?? '')) return <Alert severity="error">Customer management is available to authorized roles only.</Alert>;
-  const field = (key: keyof Form, label: string, options?: string[]) => <TextField fullWidth required={['firstName','lastName','email','phone','address','city','state','country','postalCode'].includes(key)} label={label} value={form[key]} onChange={e => change(key, e.target.value)} error={Boolean(errors[key])} helperText={errors[key]} select={Boolean(options)} type={key === 'email' ? 'email' : undefined}>{options?.map(x => <MenuItem key={x} value={x}>{x}</MenuItem>)}</TextField>;
-  return <Box><Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={2} mb={3}><Box><Typography variant="h4" fontWeight="bold">Customers</Typography><Typography color="text.secondary">Manage your customer database.</Typography></Box><Button variant="contained" startIcon={<Add />} onClick={create}>Add Customer</Button></Stack>{error && <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>{error}</Alert>}<Paper><Box p={2} display="grid" gridTemplateColumns={{ xs: '1fr', sm: '2fr 1fr 1fr' }} gap={2}><TextField size="small" placeholder="Search by name or email" value={search} onChange={e => setSearch(e.target.value)} slotProps={{ input: { startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> } }} /><TextField select size="small" label="Customer segment" value={segment} onChange={e => setSegment(e.target.value)}><MenuItem value="">All segments</MenuItem>{Object.keys(segmentColors).map(x => <MenuItem key={x} value={x}>{x.replace(' Customer', '')}</MenuItem>)}</TextField><TextField select size="small" label="Status" value={status} onChange={e => setStatus(e.target.value)}><MenuItem value="">All statuses</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem></TextField></Box><TableContainer><Table sx={{ minWidth: 940 }}><TableHead><TableRow><TableCell>Customer Name</TableCell><TableCell>Email</TableCell><TableCell>Phone Number</TableCell><TableCell>Customer Segment</TableCell><TableCell align="right">Total Purchases</TableCell><TableCell align="right">Total Spend</TableCell><TableCell>Status</TableCell><TableCell align="right">Actions</TableCell></TableRow></TableHead><TableBody>{loading ? Array.from({ length: 5 }).map((_, i) => <TableRow key={i}>{Array.from({ length: 8 }).map((__, j) => <TableCell key={j}><Skeleton /></TableCell>)}</TableRow>) : shown.map(c => <TableRow key={c.id} hover><TableCell sx={{ fontWeight: 600 }}>{c.fullName}</TableCell><TableCell>{c.email}</TableCell><TableCell>{c.phone}</TableCell><TableCell><Chip size="small" label={c.segment.replace(' Customer', '')} color={segmentColors[c.segment] || 'default'} /></TableCell><TableCell align="right">{c.purchaseSummary?.totalOrders || 0}</TableCell><TableCell align="right">${(c.purchaseSummary?.totalRevenue || 0).toFixed(2)}</TableCell><TableCell><Chip size="small" label={c.status} color={c.status === 'Active' ? 'success' : 'default'} /></TableCell><TableCell align="right"><Tooltip title="View details"><IconButton onClick={() => navigate(`/customers/${c.id}`)}><Visibility fontSize="small" /></IconButton></Tooltip><Tooltip title="Edit customer"><IconButton onClick={() => edit(c)}><EditOutlined fontSize="small" /></IconButton></Tooltip><Tooltip title="Remove customer"><IconButton color="error" onClick={() => setTarget(c)}><DeleteOutlined fontSize="small" /></IconButton></Tooltip></TableCell></TableRow>)}{!loading && !shown.length && <TableRow><TableCell colSpan={8} align="center" sx={{ py: 7 }}><Typography fontWeight={600}>No customers found</Typography><Typography variant="body2" color="text.secondary" mt={0.5}>Add your first customer or adjust the filters.</Typography><Button sx={{ mt: 2 }} variant="contained" startIcon={<Add />} onClick={create}>Add Customer</Button></TableCell></TableRow>}</TableBody></Table></TableContainer></Paper><Dialog open={open} onClose={() => !saving && setOpen(false)} maxWidth="md" fullWidth><DialogTitle>{editing ? 'Edit Customer' : 'Add Customer'}</DialogTitle><DialogContent><Box pt={1} display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={2}>{field('firstName','First Name')}{field('lastName','Last Name')}{field('email','Email')}{field('phone','Phone Number')}<Box gridColumn={{ sm: 'span 2' }}>{field('address','Address')}</Box>{field('city','City')}{field('state','State')}{field('country','Country')}{field('postalCode','Postal Code')}{field('customerType','Customer Type',['Retail','Wholesale','Corporate'])}{field('status','Status',['Active','Inactive'])}</Box></DialogContent><DialogActions><Button onClick={() => setOpen(false)} disabled={saving}>Cancel</Button><Button variant="contained" onClick={save} disabled={saving}>{saving ? 'Saving…' : editing ? 'Update Customer' : 'Save Customer'}</Button></DialogActions></Dialog><Dialog open={Boolean(target)} onClose={() => !saving && setTarget(null)}><DialogTitle>Remove customer?</DialogTitle><DialogContent>This customer will be hidden from the active database and retained for reporting.</DialogContent><DialogActions><Button onClick={() => setTarget(null)}>Cancel</Button><Button color="error" variant="contained" onClick={remove} disabled={saving}>Remove</Button></DialogActions></Dialog></Box>;
+
+  return (
+    <Box>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'space-between', alignItems: { sm: 'center' }, mb: 3 }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>Customers</Typography>
+          <Typography color="text.secondary">Manage your customer database.</Typography>
+        </Box>
+        <Button variant="contained" startIcon={<Add />} onClick={create}>Add Customer</Button>
+      </Stack>
+      {error && <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>{error}</Alert>}
+      <Paper>
+        <CustomersListFilters 
+          search={search} setSearch={setSearch}
+          segment={segment} setSegment={setSegment}
+          status={status} setStatus={setStatus}
+          segmentColors={segmentColors}
+        />
+        <CustomersListTable 
+          loading={loading} shown={shown} segmentColors={segmentColors}
+          edit={edit} setTarget={setTarget} create={create}
+        />
+      </Paper>
+      <CustomerFormDialog 
+        open={open} saving={saving} editing={Boolean(editing)}
+        form={form} errors={errors} setOpen={setOpen}
+        change={change} save={save}
+      />
+      <CustomerDeleteDialog 
+        open={Boolean(target)} saving={saving}
+        setTarget={setTarget} remove={remove}
+      />
+    </Box>
+  );
 }

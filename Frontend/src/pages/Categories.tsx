@@ -1,24 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
-  IconButton, InputAdornment, Paper, Stack, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, TextField, Typography,
-} from '@mui/material';
-import { Add, DeleteOutlined, EditOutlined, Search } from '@mui/icons-material';
+import { Alert, Box, Button, InputAdornment, Paper, Stack, TextField, Typography } from '@mui/material';
+import { Add, Search } from '@mui/icons-material';
 import { axiosPrivate } from '../api/axios';
 import { useAuth } from '../context/AuthContext';
-
-interface Category {
-  id: number;
-  name: string;
-  description: string | null;
-  status: boolean;
-  productCount: number;
-}
-
-interface CategoryForm { name: string; description: string; status: boolean }
-const emptyForm: CategoryForm = { name: '', description: '', status: true };
-const adminRoles = ['Super Admin', 'Company Owner', 'Company Admin'];
+import { Category, CategoryForm, emptyForm, adminRoles } from './Categories/CategoriesShared';
+import CategoriesTable from './Categories/CategoriesTable';
+import CategoryFormDialog from './Categories/CategoryFormDialog';
+import CategoryDeleteDialog from './Categories/CategoryDeleteDialog';
 
 const Categories = () => {
   const { user } = useAuth();
@@ -90,7 +78,10 @@ const Categories = () => {
   return (
     <Box>
       <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', alignItems: { sm: 'center' }, mb: 3 }} spacing={2}>
-        <Box><Typography variant="h4" sx={{ fontWeight: 'bold' }} gutterBottom>Categories</Typography><Typography color="text.secondary">Manage the product categories used across your company.</Typography></Box>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 'bold' }} gutterBottom>Categories</Typography>
+          <Typography color="text.secondary">Manage the product categories used across your company.</Typography>
+        </Box>
         <Button variant="contained" startIcon={<Add />} onClick={openCreate}>Add category</Button>
       </Stack>
       {error && <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>{error}</Alert>}
@@ -99,38 +90,19 @@ const Categories = () => {
           <TextField size="small" label="Search categories" value={search} onChange={(event) => setSearch(event.target.value)}
             slotProps={{ input: { startAdornment: <InputAdornment position="start"><Search /></InputAdornment> } }} sx={{ minWidth: { xs: '100%', sm: 300 } }} />
         </Box>
-        {loading ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 7 }}><CircularProgress /></Box> : (
-          <TableContainer><Table>
-            <TableHead><TableRow><TableCell>Category name</TableCell><TableCell>Description</TableCell><TableCell align="center">Products</TableCell><TableCell>Status</TableCell><TableCell align="right">Actions</TableCell></TableRow></TableHead>
-            <TableBody>
-              {visibleCategories.map((category) => <TableRow key={category.id} hover>
-                <TableCell sx={{ fontWeight: 600 }}>{category.name}</TableCell>
-                <TableCell sx={{ maxWidth: 380 }}>{category.description || '—'}</TableCell>
-                <TableCell align="center">{category.productCount}</TableCell>
-                <TableCell><Chip size="small" label={category.status ? 'Active' : 'Inactive'} color={category.status ? 'success' : 'default'} /></TableCell>
-                <TableCell align="right"><IconButton aria-label={`Edit ${category.name}`} onClick={() => openEdit(category)}><EditOutlined fontSize="small" /></IconButton><IconButton aria-label={`Delete ${category.name}`} color="error" onClick={() => setDeleteTarget(category)}><DeleteOutlined fontSize="small" /></IconButton></TableCell>
-              </TableRow>)}
-              {!visibleCategories.length && <TableRow><TableCell colSpan={5} align="center" sx={{ py: 5 }}>{search ? 'No categories match your search.' : 'No categories have been created yet.'}</TableCell></TableRow>}
-            </TableBody>
-          </Table></TableContainer>
-        )}
+        <CategoriesTable 
+          loading={loading} visibleCategories={visibleCategories} search={search} 
+          openEdit={openEdit} setDeleteTarget={setDeleteTarget} 
+        />
       </Paper>
-      <Dialog open={dialogOpen} onClose={() => !saving && setDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>{editing ? 'Edit category' : 'Add category'}</DialogTitle>
-        <DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
-          <TextField autoFocus required label="Category name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} slotProps={{ htmlInput: { maxLength: 120 } }} />
-          <TextField label="Description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} multiline minRows={3} slotProps={{ htmlInput: { maxLength: 500 } }} />
-          <TextField select label="Status" value={form.status ? 'active' : 'inactive'} onChange={(event) => setForm({ ...form, status: event.target.value === 'active' })} slotProps={{ select: { native: true } }}>
-            <option value="active">Active</option><option value="inactive">Inactive</option>
-          </TextField>
-        </Stack></DialogContent>
-        <DialogActions><Button onClick={() => setDialogOpen(false)} disabled={saving}>Cancel</Button><Button variant="contained" onClick={saveCategory} disabled={saving}>{saving ? 'Saving…' : 'Save category'}</Button></DialogActions>
-      </Dialog>
-      <Dialog open={Boolean(deleteTarget)} onClose={() => !saving && setDeleteTarget(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Delete category?</DialogTitle>
-        <DialogContent><Typography>Delete “{deleteTarget?.name}”? This cannot be undone.</Typography></DialogContent>
-        <DialogActions><Button onClick={() => setDeleteTarget(null)} disabled={saving}>Cancel</Button><Button color="error" variant="contained" onClick={deleteCategory} disabled={saving}>{saving ? 'Deleting…' : 'Delete'}</Button></DialogActions>
-      </Dialog>
+      <CategoryFormDialog 
+        dialogOpen={dialogOpen} editing={editing} saving={saving} 
+        form={form} setForm={setForm} setDialogOpen={setDialogOpen} saveCategory={saveCategory} 
+      />
+      <CategoryDeleteDialog 
+        deleteTarget={deleteTarget} saving={saving} 
+        setDeleteTarget={setDeleteTarget} deleteCategory={deleteCategory} 
+      />
     </Box>
   );
 };

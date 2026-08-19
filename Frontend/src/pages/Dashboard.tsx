@@ -86,18 +86,18 @@ const Dashboard = () => {
       </Box>
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}><StatCard title="TOTAL REVENUE" value={currency.format(totalRevenue)} icon={<AttachMoney />} /></Grid>
-        <Grid item xs={12} sm={6} md={3}><StatCard title="SALES" value={String(sales.length)} icon={<TrendingUp />} /></Grid>
-        <Grid item xs={12} sm={6} md={3}><StatCard title="ACTIVE STORES" value={String(stores.filter((store) => store.is_active).length)} icon={<StoreIcon />} /></Grid>
-        <Grid item xs={12} sm={6} md={3}><StatCard title="TOTAL CUSTOMERS" value={String(customerAnalytics?.totalCustomers || 0)} icon={<StoreIcon />} /></Grid>
-        <Grid item xs={12} sm={4}><StatCard title="ACTIVE CUSTOMERS" value={String(customerAnalytics?.activeCustomers || 0)} icon={<TrendingUp />} /></Grid>
-        <Grid item xs={12} sm={4}><StatCard title="TOTAL PRODUCTS" value={String(products.length)} icon={<InventoryIcon />} /></Grid>
-        <Grid item xs={12} sm={4}><StatCard title="TOTAL CATEGORIES" value={String(categories.length)} icon={<CategoryIcon />} /></Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}><StatCard title="TOTAL REVENUE" value={currency.format(totalRevenue)} icon={<AttachMoney />} /></Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}><StatCard title="SALES" value={String(sales.length)} icon={<TrendingUp />} /></Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}><StatCard title="ACTIVE STORES" value={String(stores.filter((store) => store.is_active).length)} icon={<StoreIcon />} /></Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}><StatCard title="TOTAL CUSTOMERS" value={String(customerAnalytics?.totalCustomers || 0)} icon={<StoreIcon />} /></Grid>
+        <Grid size={{ xs: 12, sm: 4 }}><StatCard title="ACTIVE CUSTOMERS" value={String(customerAnalytics?.activeCustomers || 0)} icon={<TrendingUp />} /></Grid>
+        <Grid size={{ xs: 12, sm: 4 }}><StatCard title="TOTAL PRODUCTS" value={String(products.length)} icon={<InventoryIcon />} /></Grid>
+        <Grid size={{ xs: 12, sm: 4 }}><StatCard title="TOTAL CATEGORIES" value={String(categories.length)} icon={<CategoryIcon />} /></Grid>
       </Grid>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
       <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Paper sx={{ p: 3, height: '400px', display: 'flex', flexDirection: 'column' }}>
             <Typography variant="h6" gutterBottom>Revenue over time</Typography>
             <Box sx={{ flexGrow: 1, width: '100%' }}>
@@ -114,8 +114,8 @@ const Dashboard = () => {
             </Box>
           </Paper>
         </Grid>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, height: '400px', display: 'flex', flexDirection: 'column' }}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', height: '100%' }}>
             <Typography variant="h6" gutterBottom>Sales by Category</Typography>
             <Box sx={{ flexGrow: 1, width: '100%' }}>
               <ResponsiveContainer width="100%" height="100%">

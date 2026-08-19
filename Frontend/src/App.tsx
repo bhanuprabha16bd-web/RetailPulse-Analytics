@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 import { ThemeProvider, CssBaseline } from '@mui/material';
@@ -16,14 +15,13 @@ import Categories from './pages/Categories';
 import Products from './pages/Products';
 import Sales from './pages/Sales';
 import Stores from './pages/Stores';
-import Analytics from './pages/Analytics';
 import SalesAnalytics from './pages/SalesAnalytics';
 import Inventory from './pages/Inventory';
 import CustomersList from './pages/Customers/CustomersList';
 import CustomerProfile from './pages/Customers/CustomerProfile';
 import CustomerAnalytics from './pages/Customers/CustomerAnalytics';
 import Forecasts from './pages/Forecasts';
-import Layout from './components/Layout';
+import InventoryForecast from './pages/Inventory/InventoryForecast';
 
 const queryClient = new QueryClient();
 
@@ -44,6 +42,7 @@ function App() {
                   <Route path="/stores" element={<Stores />} />
                   <Route path="/products" element={<Products />} />
                   <Route path="/inventory" element={<Inventory />} />
+                  <Route path="/inventory/forecast" element={<InventoryForecast />} />
                   <Route path="/categories" element={<Categories />} />
                   <Route path="/sales" element={<Sales />} />
                   <Route path="/customers" element={<CustomersList />} />

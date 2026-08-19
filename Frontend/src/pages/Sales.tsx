@@ -1,53 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
-  Divider, IconButton, InputAdornment, MenuItem, Paper, Stack, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, TextField, Typography, Grid, Chip
-} from '@mui/material';
-import { Add, DeleteOutlined, Search, VisibilityOutlined } from '@mui/icons-material';
+import { Alert, Box, Button, InputAdornment, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
+import { Add, Search } from '@mui/icons-material';
 import { axiosPrivate } from '../api/axios';
 import { useAuth } from '../context/AuthContext';
-
-interface Store { id: number; name: string; isActive: boolean }
-interface CustomerOption { id: number; fullName: string; customerId: string; status: string }
-interface Product { id: number; name: string; categoryId: number; unitPrice: number; status: boolean; stockQuantity: number; sku: string; }
-interface Category { id: number; name: string; }
-interface SaleItem {
-  id: number; saleId: number; productId: number; categoryId: number;
-  quantity: number; unitPrice: number; discount: number; tax: number; total: number;
-  product: { name: string } | null;
-  category: { name: string } | null;
-}
-interface Sale {
-  id: number; invoiceNumber: string; storeId: number; customerName: string | null;
-  totalAmount: number; salesChannel: string; paymentMethod: string; createdAt: string;
-  paymentStatus: string; notes: string | null;
-  store: { name: string } | null;
-  items: SaleItem[];
-}
-
-interface SaleItemForm {
-  id: string; // temp id for UI
-  productId: string; quantity: string; unitPrice: string; discount: string; tax: string;
-}
-
-interface SaleForm {
-  storeId: string; customerId: string; customerName: string; salesChannel: string; paymentMethod: string; paymentStatus: string; notes: string;
-  items: SaleItemForm[];
-}
-
-const emptyItemForm = (): SaleItemForm => ({
-  id: Math.random().toString(36).substr(2, 9),
-  productId: '', quantity: '1', unitPrice: '', discount: '0', tax: '0'
-});
-
-const emptyForm: SaleForm = {
-  storeId: '', customerId: '', customerName: '', salesChannel: 'Retail Store', paymentMethod: 'Cash', paymentStatus: 'Paid', notes: '',
-  items: [emptyItemForm()]
-};
-
-const manageRoles = ['Super Admin', 'Company Owner', 'Company Admin', 'Analyst'];
-const currency = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
+import { Sale, SaleForm, SaleItemForm, emptyForm, emptyItemForm, manageRoles, Store, CustomerOption, Product, Category } from './Sales/SalesShared';
+import SalesTable from './Sales/SalesTable';
+import SaleCreateDialog from './Sales/SaleCreateDialog';
+import SaleDetailDialog from './Sales/SaleDetailDialog';
+import SaleDeleteDialog from './Sales/SaleDeleteDialog';
 
 const Sales = () => {
   const { user } = useAuth();
@@ -324,294 +284,28 @@ const Sales = () => {
           <Button variant="outlined" onClick={handleExportCSV}>Export CSV</Button>
         </Stack>
         
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 7 }}><CircularProgress /></Box>
-        ) : (
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Invoice</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Customer</TableCell>
-                  <TableCell>Channel</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="right">Items</TableCell>
-                  <TableCell align="right">Total Amount</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {visibleSales.map((sale) => (
-                  <TableRow key={sale.id} hover>
-                    <TableCell sx={{ fontWeight: 600 }}>{sale.invoiceNumber}</TableCell>
-                    <TableCell>{new Date(sale.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell>{sale.customerName || '—'}</TableCell>
-                    <TableCell>{sale.salesChannel}</TableCell>
-                    <TableCell>
-                      <Chip size="small" label={sale.paymentStatus} color={sale.paymentStatus === 'Paid' ? 'success' : sale.paymentStatus === 'Pending' ? 'warning' : 'error'} />
-                    </TableCell>
-                    <TableCell align="right">{sale.items.length}</TableCell>
-                    <TableCell align="right">{currency.format(sale.totalAmount)}</TableCell>
-                    <TableCell align="right">
-                      <IconButton onClick={() => setDetail(sale)}><VisibilityOutlined fontSize="small" /></IconButton>
-                      <IconButton color="error" onClick={() => setDeleteTarget(sale)}><DeleteOutlined fontSize="small" /></IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {!visibleSales.length && (
-                  <TableRow><TableCell colSpan={8} align="center" sx={{ py: 5 }}>No sales found.</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+        <SalesTable 
+          loading={loading} visibleSales={visibleSales} 
+          setDetail={setDetail} setDeleteTarget={setDeleteTarget} 
+        />
       </Paper>
 
-      {/* Create Dialog */}
-      <Dialog open={dialogOpen} onClose={() => !saving && setDialogOpen(false)} maxWidth="lg" fullWidth>
-        <DialogTitle>Create New Invoice</DialogTitle>
-        <DialogContent>
-          <Stack spacing={3} sx={{ pt: 1 }}>
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField select required fullWidth label="Store" value={form.storeId} onChange={(e) => setForm({ ...form, storeId: e.target.value })}>
-                  {stores.filter(s => s.isActive || String(s.id) === form.storeId).map((s) => <MenuItem key={s.id} value={String(s.id)}>{s.name}</MenuItem>)}
-                </TextField>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField select fullWidth label="Customer" value={form.customerId} onChange={(e) => {
-                  const selectedCustomer = customers.find(customer => customer.id === Number(e.target.value));
-                  setForm({ ...form, customerId: e.target.value, customerName: selectedCustomer?.fullName ?? '' });
-                }}>
-                  <MenuItem value="">Walk-in / unlinked sale</MenuItem>
-                  {customers.filter(customer => customer.status === 'Active').map((customer) => (
-                    <MenuItem key={customer.id} value={String(customer.id)}>
-                      {customer.fullName} ({customer.customerId})
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-              {!form.customerId && (
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField fullWidth label="Walk-in customer name (optional)" value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} />
-                </Grid>
-              )}
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField select fullWidth label="Sales Channel" value={form.salesChannel} onChange={(e) => setForm({ ...form, salesChannel: e.target.value })}>
-                  <MenuItem value="Retail Store">Retail Store</MenuItem>
-                  <MenuItem value="Online Store">Online Store</MenuItem>
-                  <MenuItem value="Marketplace">Marketplace</MenuItem>
-                </TextField>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField select fullWidth label="Payment Method" value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}>
-                  <MenuItem value="Cash">Cash</MenuItem>
-                  <MenuItem value="Card">Card</MenuItem>
-                  <MenuItem value="UPI">UPI</MenuItem>
-                  <MenuItem value="Bank Transfer">Bank Transfer</MenuItem>
-                </TextField>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField select fullWidth label="Payment Status" value={form.paymentStatus} onChange={(e) => setForm({ ...form, paymentStatus: e.target.value })}>
-                  <MenuItem value="Paid">Paid</MenuItem>
-                  <MenuItem value="Pending">Pending</MenuItem>
-                  <MenuItem value="Overdue">Overdue</MenuItem>
-                </TextField>
-              </Grid>
-              <Grid size={{ xs: 12 }}>
-                <TextField fullWidth multiline rows={2} label="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-              </Grid>
-            </Grid>
+      <SaleCreateDialog 
+        dialogOpen={dialogOpen} saving={saving} form={form} setForm={setForm} 
+        setDialogOpen={setDialogOpen} save={save} 
+        stores={stores} customers={customers} products={products} categories={categories} 
+        handleItemChange={handleItemChange} addItem={addItem} removeItem={removeItem} 
+        billingSummary={billingSummary} 
+      />
 
-            <Divider><Typography variant="body2" color="text.secondary">Items</Typography></Divider>
+      <SaleDetailDialog 
+        detail={detail} setDetail={setDetail} 
+      />
 
-            {form.items.map((item, index) => {
-              const selectedProduct = products.find(p => p.id === Number(item.productId));
-              const categoryName = categories.find(c => c.id === selectedProduct?.categoryId)?.name || '—';
-              
-              return (
-              <Box key={item.id} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-                <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="subtitle2">Item {index + 1}</Typography>
-                  {form.items.length > 1 && (
-                    <IconButton size="small" color="error" onClick={() => removeItem(item.id)}><DeleteOutlined /></IconButton>
-                  )}
-                </Stack>
-                <Grid container spacing={2}>
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <TextField select required fullWidth label="Product" value={item.productId} onChange={(e) => handleItemChange(item.id, 'productId', e.target.value)}>
-                      {products.map((p) => (
-                         <MenuItem key={p.id} value={String(p.id)} disabled={!p.status || p.stockQuantity <= 0}>
-                           {p.name}
-                         </MenuItem>
-                      ))}
-                    </TextField>
-                    {selectedProduct && (
-                      <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap', gap: 1 }}>
-                        <Chip size="small" label={`SKU: ${selectedProduct.sku}`} />
-                        <Chip size="small" label={`Category: ${categoryName}`} />
-                        <Chip size="small" label={`Stock: ${selectedProduct.stockQuantity}`} color={selectedProduct.stockQuantity < 10 ? 'warning' : 'default'} />
-                      </Stack>
-                    )}
-                  </Grid>
-                  <Grid size={{ xs: 6, md: 2 }}>
-                    <TextField required fullWidth type="number" label="Quantity" value={item.quantity} onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value)} slotProps={{ htmlInput: { min: 1, step: 1, max: selectedProduct?.stockQuantity || undefined } }} error={Number(item.quantity) <= 0 || (!!selectedProduct && Number(item.quantity) > selectedProduct.stockQuantity)} helperText={Number(item.quantity) <= 0 ? 'Must be > 0' : (selectedProduct && Number(item.quantity) > selectedProduct.stockQuantity ? `Max ${selectedProduct.stockQuantity}` : '')} />
-                  </Grid>
-                  <Grid size={{ xs: 6, md: 2 }}>
-                    <TextField required fullWidth type="number" label="Unit Price" value={item.unitPrice} onChange={(e) => handleItemChange(item.id, 'unitPrice', e.target.value)} slotProps={{ input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> }, htmlInput: { min: 0, step: '0.01' } }} />
-                  </Grid>
-                  <Grid size={{ xs: 6, md: 2 }}>
-                    <TextField fullWidth type="number" label="Discount" value={item.discount} onChange={(e) => handleItemChange(item.id, 'discount', e.target.value)} slotProps={{ input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> }, htmlInput: { min: 0, step: '0.01' } }} />
-                  </Grid>
-                  <Grid size={{ xs: 6, md: 2 }}>
-                    <TextField fullWidth type="number" label="Tax" value={item.tax} onChange={(e) => handleItemChange(item.id, 'tax', e.target.value)} slotProps={{ input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> }, htmlInput: { min: 0, step: '0.01' } }} />
-                  </Grid>
-                </Grid>
-              </Box>
-            )})}
-
-            <Button startIcon={<Add />} onClick={addItem} sx={{ alignSelf: 'flex-start' }}>Add Another Item</Button>
-
-            <Box sx={{ p: 2, bgcolor: 'background.default', borderRadius: 1, mt: 2 }}>
-              <Typography variant="subtitle1" align="right" color="text.secondary">
-                Subtotal: {currency.format(billingSummary.subtotal)}
-              </Typography>
-              <Typography variant="subtitle1" align="right" color="text.secondary">
-                Discount: -{currency.format(billingSummary.totalDiscount)}
-              </Typography>
-              <Typography variant="subtitle1" align="right" color="text.secondary">
-                Tax: +{currency.format(billingSummary.totalTax)}
-              </Typography>
-              <Divider sx={{ my: 1 }} />
-              <Typography variant="h5" align="right" sx={{ fontWeight: 'bold' }}>
-                Grand Total: {currency.format(billingSummary.grandTotal)}
-              </Typography>
-            </Box>
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button disabled={saving} onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" disabled={saving} onClick={save}>{saving ? 'Saving…' : 'Generate Invoice'}</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Detail Dialog */}
-      <Dialog open={Boolean(detail)} onClose={() => setDetail(null)} maxWidth="md" fullWidth>
-        <DialogContent sx={{ p: { xs: 2, md: 5 } }}>
-          {detail && (
-            <Stack spacing={4}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', mb: 1 }}>INVOICE</Typography>
-                  <Typography variant="body2" color="text.secondary">#{detail.invoiceNumber}</Typography>
-                  <Typography variant="body2" color="text.secondary">Date: {new Date(detail.createdAt).toLocaleDateString()}</Typography>
-                </Box>
-                <Box sx={{ textAlign: 'right' }}>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>RetailPulse</Typography>
-                  <Typography variant="body2" color="text.secondary">Store: {detail.store?.name || 'Unknown'}</Typography>
-                  <Typography variant="body2" color="text.secondary">Channel: {detail.salesChannel}</Typography>
-                </Box>
-              </Box>
-
-              <Divider />
-
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="overline" color="text.secondary">Bill To</Typography>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{detail.customerName || 'Walk-in Customer'}</Typography>
-                </Box>
-                <Box sx={{ textAlign: 'right' }}>
-                  <Typography variant="overline" color="text.secondary">Payment Info</Typography>
-                  <Typography variant="body2">Method: {detail.paymentMethod}</Typography>
-                  <Typography variant="body2">
-                    Status: 
-                    <Chip size="small" label={detail.paymentStatus} color={detail.paymentStatus === 'Paid' ? 'success' : detail.paymentStatus === 'Pending' ? 'warning' : 'error'} sx={{ ml: 1 }} />
-                  </Typography>
-                </Box>
-              </Box>
-
-              <TableContainer variant="outlined" component={Box} sx={{ borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
-                <Table size="small">
-                  <TableHead sx={{ bgcolor: 'action.hover' }}>
-                    <TableRow>
-                      <TableCell>Item</TableCell>
-                      <TableCell align="right">Qty</TableCell>
-                      <TableCell align="right">Price</TableCell>
-                      <TableCell align="right">Discount</TableCell>
-                      <TableCell align="right">Tax</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>Total</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {detail.items.map(item => (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <Typography variant="body2">{item.product?.name}</Typography>
-                          <Typography variant="caption" color="text.secondary">{item.category?.name}</Typography>
-                        </TableCell>
-                        <TableCell align="right">{item.quantity}</TableCell>
-                        <TableCell align="right">{currency.format(item.unitPrice)}</TableCell>
-                        <TableCell align="right">{currency.format(item.discount)}</TableCell>
-                        <TableCell align="right">{currency.format(item.tax)}</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 'bold' }}>{currency.format(item.total)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 2 }}>
-                <Box sx={{ width: { xs: '100%', sm: '50%' } }}>
-                  {detail.notes && (
-                    <>
-                      <Typography variant="overline" color="text.secondary">Notes</Typography>
-                      <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>{detail.notes}</Typography>
-                    </>
-                  )}
-                </Box>
-                <Box sx={{ minWidth: 250, width: { xs: '100%', sm: 'auto' } }}>
-                  <Stack spacing={1}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary">Subtotal</Typography>
-                      <Typography variant="body2">{currency.format(detail.totalAmount - detail.items.reduce((sum, item) => sum + item.tax - item.discount, 0))}</Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary">Tax</Typography>
-                      <Typography variant="body2">{currency.format(detail.items.reduce((sum, item) => sum + item.tax, 0))}</Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary">Discount</Typography>
-                      <Typography variant="body2" color="success.main">-{currency.format(detail.items.reduce((sum, item) => sum + item.discount, 0))}</Typography>
-                    </Box>
-                    <Divider />
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Total</Typography>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{currency.format(detail.totalAmount)}</Typography>
-                    </Box>
-                  </Stack>
-                </Box>
-              </Box>
-            </Stack>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ px: { xs: 2, md: 5 }, pb: { xs: 2, md: 5 } }}>
-          <Button onClick={() => window.print()} variant="outlined" sx={{ mr: 'auto' }}>Print</Button>
-          <Button onClick={() => setDetail(null)} variant="contained">Close</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Delete Dialog */}
-      <Dialog open={Boolean(deleteTarget)} onClose={() => !saving && setDeleteTarget(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Delete Invoice?</DialogTitle>
-        <DialogContent>
-          <Typography>Delete invoice “{deleteTarget?.invoiceNumber}”? This will also revert product inventory quantities.</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button disabled={saving} onClick={() => setDeleteTarget(null)}>Cancel</Button>
-          <Button color="error" variant="contained" disabled={saving} onClick={deleteSale}>{saving ? 'Deleting…' : 'Delete Invoice'}</Button>
-        </DialogActions>
-      </Dialog>
+      <SaleDeleteDialog 
+        deleteTarget={deleteTarget} saving={saving} 
+        setDeleteTarget={setDeleteTarget} deleteSale={deleteSale} 
+      />
     </Box>
   );
 };

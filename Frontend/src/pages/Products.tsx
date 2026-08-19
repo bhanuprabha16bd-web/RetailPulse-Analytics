@@ -1,25 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
-  Divider, IconButton, InputAdornment, MenuItem, Paper, Stack, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, TextField, Typography,
-} from '@mui/material';
-import { Add, DeleteOutlined, EditOutlined, Search, VisibilityOutlined } from '@mui/icons-material';
+import { Alert, Box, Button, InputAdornment, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
+import { Add, Search } from '@mui/icons-material';
 import { axiosPrivate } from '../api/axios';
 import { useAuth } from '../context/AuthContext';
-
-interface Category { id: number; name: string; status: boolean }
-interface Product {
-  id: number; name: string; sku: string; categoryId: number; brand: string | null; description: string | null;
-  unitPrice: number; costPrice: number | null; stockQuantity: number; unitOfMeasure: string; status: boolean; createdAt: string;
-}
-interface ProductForm {
-  name: string; sku: string; categoryId: string; brand: string; description: string; unitPrice: string;
-  costPrice: string; stockQuantity: string; unitOfMeasure: string; status: boolean;
-}
-const emptyForm: ProductForm = { name: '', sku: '', categoryId: '', brand: '', description: '', unitPrice: '', costPrice: '', stockQuantity: '0', unitOfMeasure: 'Unit', status: true };
-const adminRoles = ['Super Admin', 'Company Owner', 'Company Admin'];
-const currency = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'INR' });
+import { Product, ProductForm, Category, emptyForm, adminRoles } from './Products/ProductsShared';
+import ProductsTable from './Products/ProductsTable';
+import ProductFormDialog from './Products/ProductFormDialog';
+import ProductDetailDialog from './Products/ProductDetailDialog';
+import ProductDeleteDialog from './Products/ProductDeleteDialog';
 
 const Products = () => {
   const { user } = useAuth();
@@ -108,36 +96,48 @@ const Products = () => {
 
   if (!adminRoles.includes(user?.role ?? '')) return <Alert severity="error">Product management is available to Company Admins only.</Alert>;
 
-  return <Box>
-    <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', alignItems: { sm: 'center' }, mb: 3 }} spacing={2}>
-      <Box><Typography variant="h4" sx={{ fontWeight: 'bold' }} gutterBottom>Products</Typography><Typography color="text.secondary">Manage your product catalog.</Typography></Box>
-      <Button variant="contained" startIcon={<Add />} onClick={openCreate}>Add product</Button>
-    </Stack>
-    {error && <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>{error}</Alert>}
-    <Paper>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-        <TextField size="small" label="Search products" value={search} onChange={(event) => setSearch(event.target.value)} slotProps={{ input: { startAdornment: <InputAdornment position="start"><Search /></InputAdornment> } }} sx={{ minWidth: { xs: '100%', md: 260 } }} />
-        <TextField select size="small" label="Category" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} sx={{ minWidth: 160 }}><MenuItem value="">All categories</MenuItem>{categories.map((category) => <MenuItem key={category.id} value={String(category.id)}>{category.name}</MenuItem>)}</TextField>
-        <TextField select size="small" label="Brand" value={brandFilter} onChange={(event) => setBrandFilter(event.target.value)} sx={{ minWidth: 150 }}><MenuItem value="">All brands</MenuItem>{brands.map((brand) => <MenuItem key={brand} value={brand}>{brand}</MenuItem>)}</TextField>
-        <TextField select size="small" label="Status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} sx={{ minWidth: 140 }}><MenuItem value="">All statuses</MenuItem><MenuItem value="true">Active</MenuItem><MenuItem value="false">Inactive</MenuItem></TextField>
-        <TextField select size="small" label="Sort By" value={sortBy} onChange={(event) => setSortBy(event.target.value)} sx={{ minWidth: 160 }}><MenuItem value="Recently Added">Recently Added</MenuItem><MenuItem value="Name (A-Z)">Name (A-Z)</MenuItem><MenuItem value="Name (Z-A)">Name (Z-A)</MenuItem><MenuItem value="Price (Low to High)">Price (Low to High)</MenuItem><MenuItem value="Price (High to Low)">Price (High to Low)</MenuItem></TextField>
+  return (
+    <Box>
+      <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', alignItems: { sm: 'center' }, mb: 3 }} spacing={2}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 'bold' }} gutterBottom>Products</Typography>
+          <Typography color="text.secondary">Manage your product catalog.</Typography>
+        </Box>
+        <Button variant="contained" startIcon={<Add />} onClick={openCreate}>Add product</Button>
       </Stack>
-      {loading ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 7 }}><CircularProgress /></Box> : <TableContainer><Table>
-        <TableHead><TableRow><TableCell>Product</TableCell><TableCell>SKU</TableCell><TableCell>Category</TableCell><TableCell>Brand</TableCell><TableCell align="right">Unit price</TableCell><TableCell>Status</TableCell><TableCell align="right">Actions</TableCell></TableRow></TableHead>
-        <TableBody>{visibleProducts.map((product) => <TableRow key={product.id} hover><TableCell sx={{ fontWeight: 600 }}>{product.name}</TableCell><TableCell>{product.sku}</TableCell><TableCell>{categories.find(c => c.id === product.categoryId)?.name || 'Unknown'}</TableCell><TableCell>{product.brand || '—'}</TableCell><TableCell align="right">{currency.format(product.unitPrice)}</TableCell><TableCell><Chip label={product.status ? 'Active' : 'Inactive'} color={product.status ? 'success' : 'default'} size="small" onClick={() => toggleStatus(product)} disabled={saving} /></TableCell><TableCell align="right"><IconButton aria-label={`View ${product.name}`} onClick={() => setDetail(product)}><VisibilityOutlined fontSize="small" /></IconButton><IconButton aria-label={`Edit ${product.name}`} onClick={() => openEdit(product)}><EditOutlined fontSize="small" /></IconButton><IconButton aria-label={`Delete ${product.name}`} color="error" onClick={() => setDeleteTarget(product)}><DeleteOutlined fontSize="small" /></IconButton></TableCell></TableRow>)}
-        {!visibleProducts.length && <TableRow><TableCell colSpan={7} align="center" sx={{ py: 5 }}>No products match the current filters.</TableCell></TableRow>}</TableBody>
-      </Table></TableContainer>}
-    </Paper>
-    <Dialog open={dialogOpen} onClose={() => !saving && setDialogOpen(false)} maxWidth="md" fullWidth><DialogTitle>{editing ? 'Edit product' : 'Add product'}</DialogTitle><DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}><TextField required fullWidth label="Product name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /><TextField required fullWidth label="SKU" value={form.sku} onChange={(event) => setForm({ ...form, sku: event.target.value })} /></Stack>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}><TextField select required fullWidth label="Category" value={form.categoryId} onChange={(event) => setForm({ ...form, categoryId: event.target.value })}>{categories.filter((category) => category.status || String(category.id) === form.categoryId).map((category) => <MenuItem key={category.id} value={String(category.id)}>{category.name}</MenuItem>)}</TextField><TextField fullWidth label="Brand" value={form.brand} onChange={(event) => setForm({ ...form, brand: event.target.value })} /></Stack>
-      <TextField label="Product description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} multiline minRows={3} />
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}><TextField required fullWidth type="number" label="Unit price" value={form.unitPrice} onChange={(event) => setForm({ ...form, unitPrice: event.target.value })} slotProps={{ input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> }, htmlInput: { min: 0, step: '0.01' } }} /><TextField fullWidth type="number" label="Cost price" value={form.costPrice} onChange={(event) => setForm({ ...form, costPrice: event.target.value })} slotProps={{ input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> }, htmlInput: { min: 0, step: '0.01' } }} /></Stack>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}><TextField required fullWidth type="number" label="Initial stock quantity" value={form.stockQuantity} onChange={(event) => setForm({ ...form, stockQuantity: event.target.value })} slotProps={{ htmlInput: { min: 0, step: 1 } }} /><TextField required fullWidth label="Unit of measure" value={form.unitOfMeasure} onChange={(event) => setForm({ ...form, unitOfMeasure: event.target.value })} /><TextField select fullWidth label="Product status" value={form.status ? 'active' : 'inactive'} onChange={(event) => setForm({ ...form, status: event.target.value === 'active' })}><MenuItem value="active">Active</MenuItem><MenuItem value="inactive">Inactive</MenuItem></TextField></Stack>
-    </Stack></DialogContent><DialogActions><Button disabled={saving} onClick={() => setDialogOpen(false)}>Cancel</Button><Button variant="contained" disabled={saving} onClick={save}>{saving ? 'Saving…' : 'Save product'}</Button></DialogActions></Dialog>
-    <Dialog open={Boolean(detail)} onClose={() => setDetail(null)} maxWidth="sm" fullWidth><DialogTitle>{detail?.name}</DialogTitle><DialogContent>{detail && <Stack spacing={1.5}><Typography color="text.secondary">SKU: {detail.sku}</Typography><Divider /><Typography><b>Category:</b> {categories.find(c => c.id === detail.categoryId)?.name || 'Unknown'}</Typography><Typography><b>Brand:</b> {detail.brand || '—'}</Typography><Typography><b>Description:</b> {detail.description || '—'}</Typography><Typography><b>Unit price:</b> {currency.format(detail.unitPrice)}</Typography><Typography><b>Cost price:</b> {detail.costPrice === null ? '—' : currency.format(detail.costPrice)}</Typography><Typography><b>Initial stock:</b> {detail.stockQuantity} {detail.unitOfMeasure}</Typography><Typography><b>Status:</b> {detail.status ? 'Active' : 'Inactive'}</Typography></Stack>}</DialogContent><DialogActions><Button onClick={() => setDetail(null)}>Close</Button></DialogActions></Dialog>
-    <Dialog open={Boolean(deleteTarget)} onClose={() => !saving && setDeleteTarget(null)} maxWidth="xs" fullWidth><DialogTitle>Delete product?</DialogTitle><DialogContent><Typography>Delete “{deleteTarget?.name}”? This cannot be undone.</Typography></DialogContent><DialogActions><Button disabled={saving} onClick={() => setDeleteTarget(null)}>Cancel</Button><Button color="error" variant="contained" disabled={saving} onClick={deleteProduct}>{saving ? 'Deleting…' : 'Delete'}</Button></DialogActions></Dialog>
-  </Box>;
+      {error && <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>{error}</Alert>}
+      <Paper>
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+          <TextField size="small" label="Search products" value={search} onChange={(event) => setSearch(event.target.value)} slotProps={{ input: { startAdornment: <InputAdornment position="start"><Search /></InputAdornment> } }} sx={{ minWidth: { xs: '100%', md: 260 } }} />
+          <TextField select size="small" label="Category" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} sx={{ minWidth: 160 }}><MenuItem value="">All categories</MenuItem>{categories.map((category) => <MenuItem key={category.id} value={String(category.id)}>{category.name}</MenuItem>)}</TextField>
+          <TextField select size="small" label="Brand" value={brandFilter} onChange={(event) => setBrandFilter(event.target.value)} sx={{ minWidth: 150 }}><MenuItem value="">All brands</MenuItem>{brands.map((brand) => <MenuItem key={brand} value={brand}>{brand}</MenuItem>)}</TextField>
+          <TextField select size="small" label="Status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} sx={{ minWidth: 140 }}><MenuItem value="">All statuses</MenuItem><MenuItem value="true">Active</MenuItem><MenuItem value="false">Inactive</MenuItem></TextField>
+          <TextField select size="small" label="Sort By" value={sortBy} onChange={(event) => setSortBy(event.target.value)} sx={{ minWidth: 160 }}><MenuItem value="Recently Added">Recently Added</MenuItem><MenuItem value="Name (A-Z)">Name (A-Z)</MenuItem><MenuItem value="Name (Z-A)">Name (Z-A)</MenuItem><MenuItem value="Price (Low to High)">Price (Low to High)</MenuItem><MenuItem value="Price (High to Low)">Price (High to Low)</MenuItem></TextField>
+        </Stack>
+        
+        <ProductsTable 
+          loading={loading} visibleProducts={visibleProducts} categories={categories} 
+          saving={saving} toggleStatus={toggleStatus} 
+          setDetail={setDetail} openEdit={openEdit} setDeleteTarget={setDeleteTarget} 
+        />
+      </Paper>
+
+      <ProductFormDialog 
+        dialogOpen={dialogOpen} editing={editing} saving={saving} 
+        form={form} setForm={setForm} setDialogOpen={setDialogOpen} save={save} 
+        categories={categories} 
+      />
+
+      <ProductDetailDialog 
+        detail={detail} setDetail={setDetail} categories={categories} 
+      />
+
+      <ProductDeleteDialog 
+        deleteTarget={deleteTarget} saving={saving} 
+        setDeleteTarget={setDeleteTarget} deleteProduct={deleteProduct} 
+      />
+    </Box>
+  );
 };
 
 export default Products;

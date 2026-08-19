@@ -562,3 +562,33 @@ class CustomerAnalyticsResponse(BaseModel):
     monthly_acquisition: list[ChartDataPoint]
     segment_distribution: list[ChartDataPoint]
     spending_distribution: list[ChartDataPoint]
+
+class InventoryRecommendationOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    product_id: int
+    category_id: int
+    product_name: str
+    sku: str
+    category_name: str
+    supplier: Optional[str] = None
+    current_stock: int
+    average_daily_sales: float
+    forecasted_demand: float
+    days_remaining: Optional[float] = None
+    safety_stock: int
+    reorder_point: int
+    recommended_quantity: int
+    stock_risk: str
+    recommendation_action: str
+
+class InventoryForecastSummaryOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    reorder_count: int
+    stockout_risk_count: int
+    overstocked_count: int
+    healthy_count: int
+
+class InventoryRecommendationsResponse(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    summary: InventoryForecastSummaryOut
+    recommendations: list[InventoryRecommendationOut]

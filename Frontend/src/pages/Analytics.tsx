@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Typography, Grid, Card, CardContent, CircularProgress, Alert, Paper, TextField, MenuItem, Button, Table, TableBody, TableCell, TableHead, TableRow, TableContainer, Chip } from '@mui/material';
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
+import { useState, useEffect, useCallback } from 'react';
+import { Box, Typography, CircularProgress, Alert, Button } from '@mui/material';
 import { Download, Print, Refresh } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { axiosPrivate } from '../api/axios';
+import AnalyticsFilters from './Analytics/AnalyticsFilters';
+import AnalyticsKPIs from './Analytics/AnalyticsKPIs';
+import AnalyticsCharts from './Analytics/AnalyticsCharts';
+import AnalyticsLowStockTable from './Analytics/AnalyticsLowStockTable';
 
 interface KPIs {
   total_revenue: number;
@@ -35,7 +38,6 @@ const Analytics = () => {
 
   // Filter Data
   const [categories, setCategories] = useState<Category[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
 
   // Filter State
@@ -64,7 +66,6 @@ const Analytics = () => {
         axiosPrivate.get<Product[]>('/products/')
       ]);
       setCategories(catRes.data);
-      setProducts(prodRes.data);
       const uniqueBrands = Array.from(new Set(prodRes.data.map(p => p.brand || 'Unbranded')));
       setBrands(uniqueBrands);
     } catch (e) {
@@ -141,7 +142,7 @@ const Analytics = () => {
   if (!kpis) return null;
 
   return (
-    <Box p={3} className="analytics-container">
+    <Box sx={{ p: 3 }} className="analytics-container">
       <style>{`
         @media print {
           .no-print { display: none !important; }
@@ -152,12 +153,12 @@ const Analytics = () => {
         }
       `}</style>
       
-      <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>Retail Analytics Dashboard</Typography>
           <Typography color="text.secondary">Comprehensive business insights, trends, and drill-downs.</Typography>
         </Box>
-        <Box className="no-print" display="flex" gap={1}>
+        <Box className="no-print" sx={{ display: 'flex', gap: 1 }}>
           <Button variant="outlined" startIcon={<Refresh />} onClick={() => loadData()}>Refresh</Button>
           <Button variant="outlined" startIcon={<Download />} onClick={handleExportCSV}>CSV</Button>
           <Button variant="contained" startIcon={<Print />} onClick={handleExportPDF}>PDF</Button>
@@ -165,233 +166,31 @@ const Analytics = () => {
       </Box>
 
       {/* Global Filters */}
-      <Paper className="no-print" sx={{ p: 2, mb: 4 }} variant="outlined">
-        <Typography variant="subtitle2" mb={2} color="text.secondary">Global Filters</Typography>
-        <Box display="flex" flexWrap="wrap" gap={2} alignItems="center">
-          <TextField sx={{ minWidth: 180, flexGrow: 1 }} type={filters.start_date ? 'date' : 'text'} onFocus={(e) => e.target.type = 'date'} onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }} size="small" label="Start Date" value={filters.start_date} onChange={e => handleFilterChange('start_date', e.target.value)} />
-          <TextField sx={{ minWidth: 180, flexGrow: 1 }} type={filters.end_date ? 'date' : 'text'} onFocus={(e) => e.target.type = 'date'} onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }} size="small" label="End Date" value={filters.end_date} onChange={e => handleFilterChange('end_date', e.target.value)} />
-          <TextField sx={{ minWidth: 140, flexGrow: 1 }} select size="small" label="Category" value={filters.category_id} onChange={e => handleFilterChange('category_id', e.target.value)}>
-            <MenuItem value="">All</MenuItem>
-            {categories.map(c => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
-          </TextField>
-          <TextField sx={{ minWidth: 140, flexGrow: 1 }} select size="small" label="Brand" value={filters.brand} onChange={e => handleFilterChange('brand', e.target.value)}>
-            <MenuItem value="">All</MenuItem>
-            {brands.map(b => <MenuItem key={b} value={b}>{b}</MenuItem>)}
-          </TextField>
-          <TextField sx={{ minWidth: 140, flexGrow: 1 }} select size="small" label="Channel" value={filters.sales_channel} onChange={e => handleFilterChange('sales_channel', e.target.value)}>
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="Retail Store">Retail Store</MenuItem>
-            <MenuItem value="Online">Online</MenuItem>
-            <MenuItem value="Wholesale">Wholesale</MenuItem>
-          </TextField>
-          <TextField sx={{ minWidth: 140, flexGrow: 1 }} select size="small" label="Payment" value={filters.payment_method} onChange={e => handleFilterChange('payment_method', e.target.value)}>
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="Cash">Cash</MenuItem>
-            <MenuItem value="Credit Card">Credit Card</MenuItem>
-            <MenuItem value="Mobile Payment">Mobile</MenuItem>
-          </TextField>
-          <Button sx={{ minWidth: 140, height: 40 }} variant="contained" onClick={handleApplyFilters} disabled={loading}>Apply Filters</Button>
-        </Box>
-      </Paper>
+      <AnalyticsFilters 
+        filters={filters}
+        categories={categories}
+        brands={brands}
+        loading={loading}
+        onFilterChange={handleFilterChange}
+        onApplyFilters={handleApplyFilters}
+      />
 
       {/* KPI Cards */}
-      <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', cursor: 'pointer', '&:hover': { opacity: 0.9 } }} onClick={() => navigateWithFilter('/sales')}>
-            <CardContent>
-              <Typography variant="subtitle2" opacity={0.8}>Total Revenue</Typography>
-              <Typography variant="h4">${kpis.total_revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'info.main', color: 'info.contrastText', cursor: 'pointer', '&:hover': { opacity: 0.9 } }} onClick={() => navigateWithFilter('/sales')}>
-            <CardContent>
-              <Typography variant="subtitle2" opacity={0.8}>Total Orders</Typography>
-              <Typography variant="h4">{kpis.total_orders.toLocaleString()}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'success.main', color: 'success.contrastText', cursor: 'pointer', '&:hover': { opacity: 0.9 } }} onClick={() => navigateWithFilter('/sales')}>
-            <CardContent>
-              <Typography variant="subtitle2" opacity={0.8}>Avg Order Value</Typography>
-              <Typography variant="h4">${kpis.average_order_value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'secondary.main', color: 'secondary.contrastText', cursor: 'pointer', '&:hover': { opacity: 0.9 } }} onClick={() => navigateWithFilter('/products')}>
-            <CardContent>
-              <Typography variant="subtitle2" opacity={0.8}>Total Products Sold</Typography>
-              <Typography variant="h4">{kpis.total_products_sold.toLocaleString()}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+      <AnalyticsKPIs 
+        kpis={kpis} 
+        navigateWithFilter={navigateWithFilter} 
+      />
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card variant="outlined" sx={{ cursor: 'pointer', '&:hover': { borderColor: 'primary.main' } }} onClick={() => navigateWithFilter('/inventory')}>
-            <CardContent>
-              <Typography variant="subtitle2" color="text.secondary">Total Inventory Value</Typography>
-              <Typography variant="h4" color="primary.main">${kpis.total_inventory_value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card variant="outlined" sx={{ cursor: 'pointer', '&:hover': { borderColor: 'warning.main' } }} onClick={() => navigateWithFilter('/inventory')}>
-            <CardContent>
-              <Typography variant="subtitle2" color="text.secondary">Low Stock Products</Typography>
-              <Typography variant="h4" color="warning.main">{kpis.low_stock_products}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card variant="outlined" sx={{ cursor: 'pointer', '&:hover': { borderColor: 'error.main' } }} onClick={() => navigateWithFilter('/inventory')}>
-            <CardContent>
-              <Typography variant="subtitle2" color="text.secondary">Out of Stock</Typography>
-              <Typography variant="h4" color="error.main">{kpis.out_of_stock_products}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card variant="outlined" sx={{ cursor: 'pointer', '&:hover': { borderColor: 'info.main' } }} onClick={() => navigateWithFilter('/categories')}>
-            <CardContent>
-              <Typography variant="subtitle2" color="text.secondary">Total Categories</Typography>
-              <Typography variant="h4">{kpis.total_categories}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Charts Row 1 */}
-      <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} md={7}>
-          <Paper variant="outlined" sx={{ p: 2, height: 400 }}>
-            <Typography variant="h6" mb={2}>Revenue Trend</Typography>
-            {kpis.revenue_trend.length > 0 ? (
-              <ResponsiveContainer width="100%" height="90%">
-                <LineChart data={kpis.revenue_trend}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <RechartsTooltip formatter={(value: number) => [`$${value.toFixed(2)}`, 'Revenue']} />
-                  <Line type="monotone" dataKey="revenue" stroke="#1976d2" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 8 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <Box height="90%" display="flex" alignItems="center" justifyContent="center"><Typography color="text.secondary">No trend data available.</Typography></Box>
-            )}
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={5}>
-          <Paper variant="outlined" sx={{ p: 2, height: 400 }}>
-            <Typography variant="h6" mb={2}>Top Selling Products</Typography>
-            {kpis.top_products.length > 0 ? (
-              <ResponsiveContainer width="100%" height="90%">
-                <BarChart data={kpis.top_products} layout="vertical" margin={{ left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
-                  <RechartsTooltip />
-                  <Bar dataKey="quantity_sold" fill="#2e7d32" name="Qty Sold" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <Box height="90%" display="flex" alignItems="center" justifyContent="center"><Typography color="text.secondary">No product data available.</Typography></Box>
-            )}
-          </Paper>
-        </Grid>
-      </Grid>
-
-      {/* Charts Row 2 */}
-      <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} md={4}>
-          <Paper variant="outlined" sx={{ p: 2, height: 350 }}>
-            <Typography variant="h6" mb={2} align="center">Sales by Payment Method</Typography>
-            {kpis.sales_by_payment.length > 0 ? (
-              <ResponsiveContainer width="100%" height="90%">
-                <PieChart>
-                  <Pie data={kpis.sales_by_payment} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                    {kpis.sales_by_payment.map((_, i) => <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />)}
-                  </Pie>
-                  <RechartsTooltip formatter={(val: number) => `$${val.toFixed(2)}`} />
-                  <Legend iconType="square" />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <Box height="90%" display="flex" alignItems="center" justifyContent="center"><Typography color="text.secondary">No payment data.</Typography></Box>
-            )}
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Paper variant="outlined" sx={{ p: 2, height: 350 }}>
-            <Typography variant="h6" mb={2} align="center">Sales by Channel</Typography>
-            {kpis.sales_by_channel.length > 0 ? (
-              <ResponsiveContainer width="100%" height="90%">
-                <PieChart>
-                  <Pie data={kpis.sales_by_channel} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                    {kpis.sales_by_channel.map((_, i) => <Cell key={`cell-${i}`} fill={COLORS[(i+2) % COLORS.length]} />)}
-                  </Pie>
-                  <RechartsTooltip formatter={(val: number) => `$${val.toFixed(2)}`} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <Box height="90%" display="flex" alignItems="center" justifyContent="center"><Typography color="text.secondary">No channel data.</Typography></Box>
-            )}
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Paper variant="outlined" sx={{ p: 2, height: 350 }}>
-            <Typography variant="h6" mb={2} align="center">Inventory by Category</Typography>
-            {kpis.inventory_by_category.length > 0 ? (
-              <ResponsiveContainer width="100%" height="90%">
-                <BarChart data={kpis.inventory_by_category}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                  <YAxis />
-                  <RechartsTooltip />
-                  <Bar dataKey="quantity" fill="#9c27b0" name="Quantity" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <Box height="90%" display="flex" alignItems="center" justifyContent="center"><Typography color="text.secondary">No inventory data.</Typography></Box>
-            )}
-          </Paper>
-        </Grid>
-      </Grid>
+      {/* Charts Row 1 & 2 */}
+      <AnalyticsCharts 
+        kpis={kpis} 
+        COLORS={COLORS} 
+      />
 
       {/* Top Low Stock Table */}
-      <Paper variant="outlined" sx={{ p: 2 }}>
-        <Typography variant="h6" mb={2}>Critical Low Stock Products</Typography>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Product Name</TableCell>
-                <TableCell align="right">Available Stock</TableCell>
-                <TableCell align="right">Reorder Level</TableCell>
-                <TableCell align="center">Status</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {kpis.top_low_stock.map((p, i) => (
-                <TableRow key={i} hover>
-                  <TableCell>{p.name}</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 'bold' }}>{p.available}</TableCell>
-                  <TableCell align="right">{p.reorder_level}</TableCell>
-                  <TableCell align="center">
-                    <Chip size="small" label={p.available <= 0 ? 'Out of Stock' : 'Low Stock'} color={p.available <= 0 ? 'error' : 'warning'} />
-                  </TableCell>
-                </TableRow>
-              ))}
-              {kpis.top_low_stock.length === 0 && (
-                <TableRow><TableCell colSpan={4} align="center" sx={{ py: 3 }}>All products are sufficiently stocked.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+      <AnalyticsLowStockTable 
+        kpis={kpis} 
+      />
     </Box>
   );
 };

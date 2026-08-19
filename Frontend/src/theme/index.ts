@@ -57,14 +57,17 @@ const theme = createTheme({
             backgroundColor: '#334155',
           },
         },
-        containedSecondary: {
-          '&:hover': { backgroundColor: '#0369A1' },
-        },
         outlined: {
           borderWidth: '1px',
           '&:hover': { borderWidth: '1px', backgroundColor: '#F1F5F9' },
         }
       },
+      variants: [
+        {
+          props: { variant: 'contained', color: 'secondary' },
+          style: { '&:hover': { backgroundColor: '#0369A1' } },
+        },
+      ],
     },
     MuiPaper: {
       styleOverrides: {
