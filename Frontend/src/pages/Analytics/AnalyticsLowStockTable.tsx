@@ -8,7 +8,7 @@ interface AnalyticsLowStockTableProps {
 const AnalyticsLowStockTable: React.FC<AnalyticsLowStockTableProps> = ({ kpis }) => {
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
-      <Typography variant="h6" mb={2}>Critical Low Stock Products</Typography>
+      <Typography variant="h6" sx={{ mb: 2 }}>Critical Low Stock Products</Typography>
       <TableContainer>
         <Table size="small">
           <TableHead>

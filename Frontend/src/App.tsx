@@ -15,6 +15,7 @@ import Categories from './pages/Categories';
 import Products from './pages/Products';
 import Sales from './pages/Sales';
 import Stores from './pages/Stores';
+import Analytics from './pages/Analytics';
 import SalesAnalytics from './pages/SalesAnalytics';
 import Inventory from './pages/Inventory';
 import CustomersList from './pages/Customers/CustomersList';
@@ -48,7 +49,7 @@ function App() {
                   <Route path="/customers" element={<CustomersList />} />
                   <Route path="/customers/analytics" element={<CustomerAnalytics />} />
                   <Route path="/customers/:id" element={<CustomerProfile />} />
-                  <Route path="/analytics" element={<SalesAnalytics />} />
+                  <Route path="/analytics" element={<Analytics />} />
                   <Route path="/analytics/sales" element={<SalesAnalytics />} />
                   <Route path="/forecasts" element={<Forecasts />} />
                   <Route path="/profile" element={<Profile />} />

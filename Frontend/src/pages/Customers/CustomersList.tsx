@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Alert, Box, Button, Paper, Stack, Typography } from '@mui/material';
 import { Add } from '@mui/icons-material';
 import { customersApi, Customer } from '../../api/customers';
@@ -15,6 +16,7 @@ const segmentColors: Record<string, 'default' | 'info' | 'primary' | 'secondary'
 
 export default function CustomersList() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState(''); const [segment, setSegment] = useState(''); const [status, setStatus] = useState(''); const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false); const [editing, setEditing] = useState<Customer | null>(null); const [target, setTarget] = useState<Customer | null>(null); const [form, setForm] = useState<Form>(empty); const [errors, setErrors] = useState<Partial<Record<keyof Form, string>>>({});
@@ -36,7 +38,10 @@ export default function CustomersList() {
           <Typography variant="h4" sx={{ fontWeight: 'bold' }}>Customers</Typography>
           <Typography color="text.secondary">Manage your customer database.</Typography>
         </Box>
-        <Button variant="contained" startIcon={<Add />} onClick={create}>Add Customer</Button>
+        <Stack direction="row" spacing={2}>
+          <Button variant="outlined" onClick={() => navigate('/customers/analytics')}>View Analytics</Button>
+          <Button variant="contained" startIcon={<Add />} onClick={create}>Add Customer</Button>
+        </Stack>
       </Stack>
       {error && <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>{error}</Alert>}
       <Paper>

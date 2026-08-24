@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Alert, Box, Button, InputAdornment, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
 import { Add, Search } from '@mui/icons-material';
 import { axiosPrivate } from '../api/axios';
@@ -11,6 +12,7 @@ import SaleDeleteDialog from './Sales/SaleDeleteDialog';
 
 const Sales = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [sales, setSales] = useState<Sale[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
@@ -246,7 +248,10 @@ const Sales = () => {
           <Typography variant="h4" sx={{ fontWeight: 'bold' }} gutterBottom>Sales Management</Typography>
           <Typography color="text.secondary">Record and manage multi-item invoices.</Typography>
         </Box>
-        <Button variant="contained" startIcon={<Add />} onClick={openCreate}>Create Invoice</Button>
+        <Stack direction="row" spacing={2}>
+          <Button variant="outlined" onClick={() => navigate('/analytics/sales')}>View Sales Analytics</Button>
+          <Button variant="contained" startIcon={<Add />} onClick={openCreate}>Create Invoice</Button>
+        </Stack>
       </Stack>
       
       {error && <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>{error}</Alert>}

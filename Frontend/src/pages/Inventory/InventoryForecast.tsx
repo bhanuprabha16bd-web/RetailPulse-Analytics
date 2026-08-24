@@ -19,8 +19,6 @@ const InventoryForecast = () => {
   const [riskFilter, setRiskFilter] = useState('');
   const [reorderFilter, setReorderFilter] = useState('');
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState(0);
-  const rowsPerPage = 10;
 
   const [selectedProduct, setSelectedProduct] = useState<Recommendation | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -91,8 +89,6 @@ const InventoryForecast = () => {
     : (categoryFilter || supplierFilter || productFilter || riskFilter || reorderFilter
       ? 'No recommendations match the selected filters.'
       : 'No inventory is available for replenishment analysis.');
-  const visibleRows = sortedRecommendations.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
-  const pageCount = Math.max(1, Math.ceil(sortedRecommendations.length / rowsPerPage));
   
   const exportCsv = () => {
     const fields = ['productName', 'sku', 'currentStock', 'averageDailySales', 'forecastedDemand', 'daysRemaining', 'reorderPoint', 'recommendedQuantity', 'stockRisk', 'recommendationAction'];
@@ -127,13 +123,12 @@ const InventoryForecast = () => {
         riskFilter={riskFilter} setRiskFilter={setRiskFilter} 
         reorderFilter={reorderFilter} setReorderFilter={setReorderFilter} 
         sortBy={sortBy} setSortBy={setSortBy} 
-        search={search} setSearch={setSearch} setPage={setPage} 
+        search={search} setSearch={setSearch} 
       />
 
       <InventoryForecastTable 
-        loading={loading} visibleRows={visibleRows} sortedRecommendations={sortedRecommendations} 
-        emptyMessage={emptyMessage} page={page} rowsPerPage={rowsPerPage} pageCount={pageCount} 
-        setPage={setPage} openDrawer={openDrawer} 
+        loading={loading} sortedRecommendations={sortedRecommendations} 
+        emptyMessage={emptyMessage} openDrawer={openDrawer} 
       />
 
       <InventoryForecastDrawer 

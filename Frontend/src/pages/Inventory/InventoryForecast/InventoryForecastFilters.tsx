@@ -12,7 +12,6 @@ interface InventoryForecastFiltersProps {
   reorderFilter: string; setReorderFilter: (val: string) => void;
   sortBy: string; setSortBy: (val: string) => void;
   search: string; setSearch: (val: string) => void;
-  setPage: (val: number) => void;
 }
 
 export default function InventoryForecastFilters({
@@ -23,7 +22,7 @@ export default function InventoryForecastFilters({
   riskFilter, setRiskFilter,
   reorderFilter, setReorderFilter,
   sortBy, setSortBy,
-  search, setSearch, setPage
+  search, setSearch
 }: InventoryForecastFiltersProps) {
   return (
     <Card sx={{ mb: 2 }}>
@@ -62,7 +61,7 @@ export default function InventoryForecastFilters({
             <MenuItem value="days_remaining">Days Remaining</MenuItem>
             <MenuItem value="recommended_quantity">Recommended Qty</MenuItem>
           </TextField>
-          <TextField size="small" label="Search product or SKU" value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} sx={{ minWidth: 210 }} slotProps={{ input: { endAdornment: <Search fontSize="small" color="action" /> } }} />
+          <TextField size="small" label="Search product or SKU" value={search} onChange={e => { setSearch(e.target.value); }} sx={{ minWidth: 210 }} slotProps={{ input: { endAdornment: <Search fontSize="small" color="action" /> } }} />
         </Stack>
       </CardContent>
     </Card>

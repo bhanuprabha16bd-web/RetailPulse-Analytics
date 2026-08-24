@@ -15,10 +15,10 @@ const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
 }) => {
   return (
     <Paper className="no-print" sx={{ p: 2, mb: 4 }} variant="outlined">
-      <Typography variant="subtitle2" mb={2} color="text.secondary">Global Filters</Typography>
-      <Box display="flex" flexWrap="wrap" gap={2} alignItems="center">
-        <TextField sx={{ minWidth: 180, flexGrow: 1 }} type={filters.start_date ? 'date' : 'text'} onFocus={(e) => e.target.type = 'date'} onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }} size="small" label="Start Date" value={filters.start_date} onChange={e => onFilterChange('start_date', e.target.value)} />
-        <TextField sx={{ minWidth: 180, flexGrow: 1 }} type={filters.end_date ? 'date' : 'text'} onFocus={(e) => e.target.type = 'date'} onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }} size="small" label="End Date" value={filters.end_date} onChange={e => onFilterChange('end_date', e.target.value)} />
+      <Typography variant="subtitle2" sx={{ mb: 2 }} color="text.secondary">Global Filters</Typography>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+        <TextField sx={{ minWidth: 180, flexGrow: 1 }} type="date" slotProps={{ inputLabel: { shrink: true } }} size="small" label="Start Date" value={filters.start_date} onChange={e => onFilterChange('start_date', e.target.value)} />
+        <TextField sx={{ minWidth: 180, flexGrow: 1 }} type="date" slotProps={{ inputLabel: { shrink: true } }} size="small" label="End Date" value={filters.end_date} onChange={e => onFilterChange('end_date', e.target.value)} />
         <TextField sx={{ minWidth: 140, flexGrow: 1 }} select size="small" label="Category" value={filters.category_id} onChange={e => onFilterChange('category_id', e.target.value)}>
           <MenuItem value="">All</MenuItem>
           {categories.map(c => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}

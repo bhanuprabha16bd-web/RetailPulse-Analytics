@@ -60,9 +60,9 @@ export default function SalesAnalytics() {
 
   const products = useMemo(() => [...(data?.top_products ?? [])].sort((a, b) => b[productSort] - a[productSort]), [data, productSort]);
   const metrics: [string, number, boolean, ReactNode, string][] = [
-    ['Total Revenue', data?.kpis.total_revenue ?? 0, true, <AccountBalanceWallet />, '#8b5cf6'], ['Total Orders', data?.kpis.total_orders ?? 0, false, <CalendarMonth />, '#3b82f6'],
-    ['Average Order Value', data?.kpis.average_order_value ?? 0, true, <ShoppingCart />, '#f97316'], ['Total Items Sold', data?.kpis.total_items_sold ?? 0, false, <ReceiptLong />, '#22c55e'],
-    ['Total Discount', data?.kpis.total_discount ?? 0, true, <LocalOffer />, '#ec4899'], ['Total Tax', data?.kpis.total_tax ?? 0, true, <Paid />, '#6366f1'],
+    ['Total Revenue', data?.kpis?.total_revenue ?? 0, true, <AccountBalanceWallet />, '#8b5cf6'], ['Total Orders', data?.kpis?.total_orders ?? 0, false, <CalendarMonth />, '#3b82f6'],
+    ['Average Order Value', data?.kpis?.average_order_value ?? 0, true, <ShoppingCart />, '#f97316'], ['Total Items Sold', data?.kpis?.total_items_sold ?? 0, false, <ReceiptLong />, '#22c55e'],
+    ['Total Discount', data?.kpis?.total_discount ?? 0, true, <LocalOffer />, '#ec4899'], ['Total Tax', data?.kpis?.total_tax ?? 0, true, <Paid />, '#6366f1'],
   ];
   const exportCsv = () => {
     const report = data ?? emptyData;
