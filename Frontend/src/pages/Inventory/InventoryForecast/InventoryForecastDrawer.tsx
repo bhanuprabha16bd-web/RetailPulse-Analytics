@@ -11,8 +11,13 @@ interface InventoryForecastDrawerProps {
 
 export default function InventoryForecastDrawer({ drawerOpen, setDrawerOpen, selectedProduct }: InventoryForecastDrawerProps) {
   return (
-    <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-      <Box sx={{ width: 450, p: 3 }}>
+    <Drawer
+      anchor="right"
+      open={drawerOpen}
+      onClose={() => setDrawerOpen(false)}
+      slotProps={{ paper: { sx: { backgroundColor: '#FFFFFF', color: '#0F172A' } } }}
+    >
+      <Box sx={{ width: 450, p: 3, backgroundColor: '#FFFFFF', color: '#0F172A' }}>
         <Stack direction="row" sx={{ mb: 3, justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h6" sx={{ fontWeight: 800 }}>Recommendation Details</Typography>
           <IconButton onClick={() => setDrawerOpen(false)}><CloseIcon /></IconButton>
