@@ -592,3 +592,45 @@ class InventoryRecommendationsResponse(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
     summary: InventoryForecastSummaryOut
     recommendations: list[InventoryRecommendationOut]
+
+from models import DataImportStatusEnum, DataImportTypeEnum
+
+class DataImportBase(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
+    import_type: DataImportTypeEnum
+    filename: str
+
+class DataImportOut(DataImportBase):
+    id: int
+    company_id: int
+    uploaded_by: int
+    total_records: int
+    successful_records: int
+    failed_records: int
+    duplicate_records: int
+    status: DataImportStatusEnum
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+
+class DataImportErrorOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
+    id: int
+    import_id: int
+    row_number: int
+    error_type: str
+    error_message: str
+    raw_data: Optional[str] = None
+
+class ImportPreviewResponse(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    import_id: int
+    columns: list[str]
+    preview_data: list[dict]
+    total_rows: int
+
+class ImportValidationResponse(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    total_records: int
+    valid_records: int
+    invalid_records: int
+    duplicate_records: int

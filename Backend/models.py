@@ -53,6 +53,18 @@ class CustomerSegmentEnum(str, enum.Enum):
     loyal = "Loyal Customer"
     vip = "VIP Customer"
 
+class DataImportStatusEnum(str, enum.Enum):
+    pending = "Pending"
+    processing = "Processing"
+    completed = "Completed"
+    completed_with_errors = "Completed with Errors"
+    failed = "Failed"
+
+class DataImportTypeEnum(str, enum.Enum):
+    products = "Products"
+    customers = "Customers"
+    sales = "Sales"
+
 class Company(Base):
     __tablename__ = "companies"
 
@@ -319,3 +331,36 @@ class ForecastHistory(Base):
     accuracy = Column(Float, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     forecast = relationship("DemandForecast")
+
+class DataImport(Base):
+    __tablename__ = "data_imports"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    import_type = Column(Enum(DataImportTypeEnum), nullable=False)
+    filename = Column(String, nullable=False)
+    file_path = Column(String, nullable=False) # Path where the temporary file is saved
+    uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    total_records = Column(Integer, default=0)
+    successful_records = Column(Integer, default=0)
+    failed_records = Column(Integer, default=0)
+    duplicate_records = Column(Integer, default=0)
+    status = Column(Enum(DataImportStatusEnum), default=DataImportStatusEnum.pending)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+
+    company = relationship("Company")
+    user = relationship("User")
+    errors = relationship("DataImportError", back_populates="data_import", cascade="all, delete-orphan")
+
+class DataImportError(Base):
+    __tablename__ = "data_import_errors"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    import_id = Column(Integer, ForeignKey("data_imports.id"), nullable=False, index=True)
+    row_number = Column(Integer, nullable=False)
+    error_type = Column(String, nullable=False) # Validation, Duplicate, Database
+    error_message = Column(String, nullable=False)
+    raw_data = Column(String, nullable=True) # JSON representation of the failing row
+
+    data_import = relationship("DataImport", back_populates="errors")

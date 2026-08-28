@@ -1,0 +1,11 @@
+Invoice No,Customer Email,SKU,Quantity,Unit Price,Sale Date,Payment Method
+INV-1001,john.smith@example.com,LP001,1,80000,2025-05-01,Card
+INV-1002,emma.wilson@example.com,MN001,2,25000,2025-05-02,UPI
+INV-1003,michael.brown@example.com,KB001,3,3500,2025-05-03,Cash
+INV-1004,sophia.davis@example.com,MS001,2,1200,2025-05-04,Card
+INV-1005,daniel.johnson@example.com,HP001,1,4500,2025-05-05,UPI
+INV-1006,olivia.taylor@example.com,SP001,1,65000,2025-05-06,Bank Transfer
+INV-1007,william.anderson@example.com,TB001,2,42000,2025-05-07,Card
+INV-1008,charlotte.thomas@example.com,BS001,4,5500,2025-05-08,Cash
+INV-1009,james.martin@example.com,SS001,2,9500,2025-05-09,UPI
+INV-1010,ava.white@example.com,WC001,3,3200,2025-05-10,Card

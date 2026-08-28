@@ -16,7 +16,8 @@ import {
     History as HistoryIcon,
     Category as CategoryIcon,
     Receipt as ReceiptIcon,
-    People as PeopleIcon
+    People as PeopleIcon,
+    UploadFile as UploadFileIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
@@ -32,6 +33,7 @@ const menuItems = [
     { text: 'Customers', icon: <PeopleIcon />, path: '/customers', customersOnly: true },
     { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },
     { text: 'Demand Forecasting', icon: <AnalyticsIcon />, path: '/forecasts', salesOnly: true },
+    { text: 'Data Import', icon: <UploadFileIcon />, path: '/data-import', adminOnly: true },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
     { text: 'Audit Logs', icon: <HistoryIcon />, path: '/audit-logs', auditOnly: true },
 ];
