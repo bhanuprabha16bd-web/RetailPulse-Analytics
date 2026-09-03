@@ -99,7 +99,13 @@ def create_product(payload: schemas.ProductCreate, request: Request, db: Session
             reference_id="Initial Stock"
         )
         db.add(sm)
-    audit.record_audit_log(db, request, current_user, "Product Created", target_name=product.name)
+    audit.record_audit_log(
+        db, request, current_user, 
+        action="CREATE", 
+        resource_type="Product", 
+        resource_id=product.id,
+        description=f'Product "{product.name}" created'
+    )
     db.commit()
     db.refresh(product)
     return product
@@ -115,6 +121,8 @@ def update_product(product_id: int, payload: schemas.ProductUpdate, request: Req
     old_stock = product.stock_quantity
     old_reorder = product.reorder_level
     old_status = product.status
+    old_price = product.unit_price
+    
     for key, value in data.items():
         setattr(product, key, value)
     
@@ -133,13 +141,30 @@ def update_product(product_id: int, payload: schemas.ProductUpdate, request: Req
         )
         db.add(sm)
         
-    if old_reorder != product.reorder_level:
-        audit.record_audit_log(db, request, current_user, "Reorder Level Updated", target_name=product.name)
+    before_values = {
+        "Unit Price": old_price,
+        "Status": "Active" if old_status else "Inactive"
+    }
+    after_values = {
+        "Unit Price": product.unit_price,
+        "Status": "Active" if product.status else "Inactive"
+    }
+    
+    desc = f'Product "{product.name}" updated'
     if old_status != product.status:
-        action_name = "Product Activated" if product.status else "Product Deactivated"
-        audit.record_audit_log(db, request, current_user, action_name, target_name=product.name)
-    else:
-        audit.record_audit_log(db, request, current_user, "Product Updated", target_name=product.name)
+        desc = f'Product status changed from {"Active" if old_status else "Inactive"} to {"Active" if product.status else "Inactive"}'
+    elif old_price != product.unit_price:
+        desc = f'Product price updated from {old_price} to {product.unit_price}'
+        
+    audit.record_audit_log(
+        db, request, current_user, 
+        action="UPDATE", 
+        resource_type="Product",
+        resource_id=product.id,
+        description=desc,
+        before_values=before_values,
+        after_values=after_values
+    )
     
     db.commit()
     db.refresh(product)
@@ -155,5 +180,11 @@ def delete_product(product_id: int, request: Request, db: Session = Depends(get_
         raise HTTPException(status_code=409, detail="Products with sales history cannot be deleted. Disable the product instead.")
     name = product.name
     db.delete(product)
-    audit.record_audit_log(db, request, current_user, "Product Deleted", target_name=name)
+    audit.record_audit_log(
+        db, request, current_user, 
+        action="DELETE", 
+        resource_type="Product", 
+        resource_id=product_id, 
+        description=f'Product "{name}" deleted'
+    )
     db.commit()

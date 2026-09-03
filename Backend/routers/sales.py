@@ -206,7 +206,9 @@ def create_sale(sale_create: schemas.SaleCreate, db: Session = Depends(get_db), 
             company_id=current_user.company_id,
             user_id=current_user.id,
             action="Inventory Updated",
-            target_name=product.name
+            resource_type="Product",
+            resource_id=str(product.id),
+            description=f"Stock deducted for {product.name}"
         )
         db.add(audit_inv)
         
@@ -217,7 +219,9 @@ def create_sale(sale_create: schemas.SaleCreate, db: Session = Depends(get_db), 
                 company_id=current_user.company_id,
                 user_id=current_user.id,
                 action="Product Marked Out of Stock",
-                target_name=product.name
+                resource_type="Product",
+                resource_id=str(product.id),
+                description=f"{product.name} is now out of stock"
             )
             db.add(audit_oos)
             
@@ -279,7 +283,9 @@ def create_sale(sale_create: schemas.SaleCreate, db: Session = Depends(get_db), 
         company_id=current_user.company_id,
         user_id=current_user.id,
         action="Sale Created",
-        target_name=invoice_number
+        resource_type="Sale",
+        resource_id=invoice_number,
+        description=f"Created invoice {invoice_number}"
     )
     db.add(audit_sale)
 
@@ -312,7 +318,9 @@ def update_sale(sale_id: int, payload: schemas.SaleUpdate, db: Session = Depends
         company_id=current_user.company_id,
         user_id=current_user.id,
         action="Sale Updated",
-        target_name=sale.invoice_number
+        resource_type="Sale",
+        resource_id=sale.invoice_number,
+        description=f"Updated invoice {sale.invoice_number}"
     )
     db.add(audit_upd)
     
@@ -350,7 +358,9 @@ def delete_sale(sale_id: int, db: Session = Depends(get_db), current_user: model
                 company_id=current_user.company_id,
                 user_id=current_user.id,
                 action="Inventory Updated (Reverted)",
-                target_name=product.name
+                resource_type="Product",
+                resource_id=str(product.id),
+                description=f"Restored stock for {product.name}"
             )
             db.add(audit_inv)
 
@@ -358,7 +368,9 @@ def delete_sale(sale_id: int, db: Session = Depends(get_db), current_user: model
         company_id=current_user.company_id,
         user_id=current_user.id,
         action="Sale Deleted",
-        target_name=sale.invoice_number
+        resource_type="Sale",
+        resource_id=sale.invoice_number,
+        description=f"Deleted invoice {sale.invoice_number}"
     )
     db.add(audit_del)
 

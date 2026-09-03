@@ -519,13 +519,18 @@ def get_customer_timeline(
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
         
-    logs = dependencies.scope_company_query(db.query(models.AuditLog).filter(models.AuditLog.target_name == customer.full_name), current_user, models.AuditLog).order_by(models.AuditLog.timestamp.desc()).all()
+    logs = dependencies.scope_company_query(
+        db.query(models.AuditLog)
+        .filter(models.AuditLog.resource_type == "Customer", models.AuditLog.resource_id == str(customer_id)), 
+        current_user, 
+        models.AuditLog
+    ).order_by(models.AuditLog.created_at.desc()).all()
     
     return [
         {
             "id": log.id,
             "action": log.action,
-            "timestamp": log.timestamp,
+            "timestamp": log.created_at,
             "user": log.user.name if log.user else "System"
         }
         for log in logs

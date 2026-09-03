@@ -116,13 +116,18 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id = Column(Integer, primary_key=True, index=True)
-    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    action = Column(String)
-    target_name = Column(String, nullable=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    action = Column(String, index=True)
+    resource_type = Column(String, nullable=True, index=True)
+    resource_id = Column(String, nullable=True)
+    description = Column(String, nullable=True)
+    status = Column(String, default="Success") # e.g. Success, Failed
+    before_values = Column(String, nullable=True) # JSON string
+    after_values = Column(String, nullable=True) # JSON string
     ip_address = Column(String, nullable=True)
-    browser = Column(String, nullable=True)
-    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    user_agent = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     company = relationship("Company", back_populates="audit_logs")
     user = relationship("User", back_populates="audit_logs")

@@ -349,6 +349,17 @@ def process_import(
     data_import.status = models.DataImportStatusEnum.completed if failed_count == 0 else models.DataImportStatusEnum.completed_with_errors
     data_import.completed_at = datetime.now()
     
+    import audit
+    audit.record_audit_log(
+        db, None, current_user, 
+        action="IMPORT", 
+        resource_type="DataImport", 
+        resource_id=data_import.id, 
+        description=f"Imported {valid_count} {data_import.import_type.value} records",
+        before_values=None,
+        after_values={"Valid": valid_count, "Failed": failed_count, "Duplicate": duplicate_count}
+    )
+    
     db.commit()
     db.refresh(data_import)
     

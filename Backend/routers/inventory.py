@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from typing import List
@@ -82,7 +82,9 @@ def adjust_stock(
         company_id=current_user.company_id,
         user_id=current_user.id,
         action="Stock Adjusted",
-        target_name=product.name
+        resource_type="Product",
+        resource_id=str(product.id),
+        description=f"Stock adjusted for {product.name}"
     )
     db.add(audit_log)
     
@@ -92,10 +94,10 @@ def adjust_stock(
     
     if available == 0 and old_available > 0:
         product.status = False
-        db.add(models.AuditLog(company_id=current_user.company_id, user_id=current_user.id, action="Product Became Out of Stock", target_name=product.name))
+        db.add(models.AuditLog(company_id=current_user.company_id, user_id=current_user.id, action="Product Became Out of Stock", resource_type="Product", resource_id=str(product.id), description=f"{product.name} is now out of stock"))
         db.add(models.Notification(company_id=current_user.company_id, message=f"Product '{product.name}' is out of stock."))
     elif available <= product.reorder_level and old_available > product.reorder_level:
-        db.add(models.AuditLog(company_id=current_user.company_id, user_id=current_user.id, action="Product Reached Low Stock", target_name=product.name))
+        db.add(models.AuditLog(company_id=current_user.company_id, user_id=current_user.id, action="Product Reached Low Stock", resource_type="Product", resource_id=str(product.id), description=f"{product.name} is running low"))
         db.add(models.Notification(company_id=current_user.company_id, message=f"Low stock alert: '{product.name}' has only {available} available."))
     db.commit()
     db.refresh(movement)
@@ -245,6 +247,77 @@ def get_inventory_forecast(
     return get_inventory_recommendations(category_id, brand, product_id, stock_risk, reorder_required, db, current_user)
 
 
+@router.post("/adjust", response_model=schemas.StockMovementOut, dependencies=[Depends(allow_admin)])
+def adjust_stock(
+    adjustment: schemas.StockAdjustmentCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_company_user),
+):
+    product = scope_company_query(db.query(models.Product), current_user, models.Product).filter(models.Product.id == adjustment.product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    old_stock = product.stock_quantity
+    if adjustment.adjustment_type == "Stock Addition":
+        new_stock = old_stock + adjustment.quantity
+        movement_type = models.StockMovementEnum.stock_addition
+        qty_changed = adjustment.quantity
+    elif adjustment.adjustment_type == "Stock Removal":
+        new_stock = old_stock - adjustment.quantity
+        movement_type = models.StockMovementEnum.stock_removal
+        qty_changed = -adjustment.quantity
+    else: # Manual Adjustment
+        new_stock = adjustment.quantity
+        movement_type = models.StockMovementEnum.manual_adjustment
+        qty_changed = new_stock - old_stock
+
+    if new_stock < 0:
+        raise HTTPException(status_code=422, detail="Stock cannot be negative")
+
+    product.stock_quantity = new_stock
+    
+    movement = models.StockMovement(
+        company_id=current_user.company_id,
+        product_id=product.id,
+        movement_type=movement_type,
+        previous_quantity=old_stock,
+        updated_quantity=new_stock,
+        quantity_changed=qty_changed,
+        reason=adjustment.reason,
+        remarks=adjustment.remarks,
+        user_id=current_user.id
+    )
+    db.add(movement)
+    
+    # Audit Log
+    import audit
+    audit.record_audit_log(
+        db, request, current_user, 
+        action="STOCK_ADJUSTMENT", 
+        resource_type="Product", 
+        resource_id=product.id,
+        description=f"Stock updated from {old_stock} to {new_stock}",
+        before_values={"Stock": old_stock},
+        after_values={"Stock": new_stock}
+    )
+    
+    # Notifications and additional audits
+    available = new_stock - product.reserved_stock
+    old_available = old_stock - product.reserved_stock
+    
+    if available == 0 and old_available > 0:
+        product.status = False
+        audit.record_audit_log(db, request, current_user, action="UPDATE", resource_type="Product", resource_id=product.id, description=f"Product out of stock", before_values={"Status": "Active"}, after_values={"Status": "Inactive"})
+        db.add(models.Notification(company_id=current_user.company_id, message=f"Product '{product.name}' is out of stock."))
+    elif available <= product.reorder_level and old_available > product.reorder_level:
+        audit.record_audit_log(db, request, current_user, action="LOW_STOCK", resource_type="Product", resource_id=product.id, description=f"Product low stock alert")
+        db.add(models.Notification(company_id=current_user.company_id, message=f"Low stock alert: '{product.name}' has only {available} available."))
+    db.commit()
+    db.refresh(movement)
+    return movement
+
+
 @router.get("/recommendations/{product_id}", response_model=schemas.InventoryRecommendationOut, dependencies=[Depends(allow_admin)])
 def get_product_recommendation(
     product_id: int,
@@ -261,5 +334,3 @@ def get_product_recommendation(
         models.Sale.created_at >= since,
     ).scalar() or 0
     category = db.query(models.Category).filter(models.Category.id == product.category_id).first()
-    return build_recommendation(product, category.name if category else "Unknown", {product_id: total_sales})
-

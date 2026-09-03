@@ -275,12 +275,26 @@ class AuditLogOut(BaseModel):
     company_id: Optional[int] = None
     user_id: Optional[int] = None
     action: str
-    target_name: Optional[str] = None
+    resource_type: Optional[str] = None
+    resource_id: Optional[str] = None
+    description: Optional[str] = None
+    status: str
+    before_values: Optional[str] = None
+    after_values: Optional[str] = None
     ip_address: Optional[str] = None
-    browser: Optional[str] = None
-    timestamp: datetime
+    user_agent: Optional[str] = None
+    created_at: datetime
+    
     company: Optional[AuditCompanyOut] = None
     user: Optional[AuditUserOut] = None
+
+class PaginatedAuditLogsOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    
+    logs: list[AuditLogOut]
+    total: int
+    page: int
+    limit: int
 
 class StoreBase(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
