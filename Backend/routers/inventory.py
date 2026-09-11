@@ -4,6 +4,7 @@ from sqlalchemy import desc
 from typing import List
 
 import models, schemas
+from services.notification_service import evaluate_product_stock_alert
 from routers import audit_logs as audit
 from database import get_db
 from dependencies import get_current_company_user, scope_company_query, RoleChecker
@@ -95,10 +96,10 @@ def adjust_stock(
     if available == 0 and old_available > 0:
         product.status = False
         db.add(models.AuditLog(company_id=current_user.company_id, user_id=current_user.id, action="Product Became Out of Stock", resource_type="Product", resource_id=str(product.id), description=f"{product.name} is now out of stock"))
-        db.add(models.Notification(company_id=current_user.company_id, message=f"Product '{product.name}' is out of stock."))
     elif available <= product.reorder_level and old_available > product.reorder_level:
         db.add(models.AuditLog(company_id=current_user.company_id, user_id=current_user.id, action="Product Reached Low Stock", resource_type="Product", resource_id=str(product.id), description=f"{product.name} is running low"))
-        db.add(models.Notification(company_id=current_user.company_id, message=f"Low stock alert: '{product.name}' has only {available} available."))
+        
+    evaluate_product_stock_alert(db, product)
     db.commit()
     db.refresh(movement)
     return movement

@@ -65,6 +65,21 @@ class DataImportTypeEnum(str, enum.Enum):
     customers = "Customers"
     sales = "Sales"
 
+class NotificationTypeEnum(str, enum.Enum):
+    stockout_risk = "Stockout Risk"
+    low_stock = "Low Stock"
+    overstock = "Overstock"
+    import_completed = "Import Completed"
+    import_failed = "Import Failed"
+    sales_alert = "Sales Alert"
+    system_alert = "System Alert"
+
+class NotificationPriorityEnum(str, enum.Enum):
+    low = "Low"
+    medium = "Medium"
+    high = "High"
+    critical = "Critical"
+
 class Company(Base):
     __tablename__ = "companies"
 
@@ -236,9 +251,19 @@ class Notification(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    type = Column(Enum(NotificationTypeEnum, values_callable=lambda x: [e.value for e in x]), nullable=False, default=NotificationTypeEnum.system_alert.value)
+    title = Column(String, nullable=False)
     message = Column(String, nullable=False)
+    priority = Column(Enum(NotificationPriorityEnum, values_callable=lambda x: [e.value for e in x]), default=NotificationPriorityEnum.medium.value)
+    resource_type = Column(String, nullable=True) # e.g. "Product", "Import"
+    resource_id = Column(String, nullable=True)
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    read_at = Column(DateTime(timezone=True), nullable=True)
+
+    company = relationship("Company")
+    user = relationship("User")
 
 class StockMovement(Base):
     __tablename__ = "stock_movements"

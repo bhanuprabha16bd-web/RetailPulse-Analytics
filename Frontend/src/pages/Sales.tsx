@@ -250,7 +250,7 @@ const Sales = () => {
         </Box>
         <Stack direction="row" spacing={2}>
           <Button variant="outlined" onClick={() => navigate('/analytics/sales')}>View Sales Analytics</Button>
-          <Button variant="contained" startIcon={<Add />} onClick={openCreate}>Create Invoice</Button>
+          <Button variant="contained" startIcon={<Add />} onClick={openCreate}>Add Sale</Button>
         </Stack>
       </Stack>
       

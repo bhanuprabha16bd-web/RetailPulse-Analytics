@@ -14,6 +14,7 @@ import models
 import schemas
 from database import get_db
 from dependencies import RoleChecker, get_current_company_user
+from services.notification_service import evaluate_product_stock_alert, create_import_alert
 
 router = APIRouter(prefix="/api/import", tags=["import"])
 
@@ -254,7 +255,9 @@ def process_import(
                             stock_quantity=int(row.get("Stock Quantity") or row.get("stock_quantity") or row.get("stock")),
                         )
                         db.add(prod)
-                        
+                        db.flush()
+                        evaluate_product_stock_alert(db, prod)
+
                     elif data_import.import_type == models.DataImportTypeEnum.customers:
                         # Assuming CUST- format for customer_id
                         cust_count = db.query(models.Customer).filter_by(company_id=current_user.company_id).count()
@@ -319,6 +322,7 @@ def process_import(
                         
                         # Decrease stock
                         prod.stock_quantity -= qty
+                        evaluate_product_stock_alert(db, prod)
                         
                     db.flush() # Try to flush row
                     valid_count += 1
@@ -340,6 +344,7 @@ def process_import(
     except Exception as e:
         db.rollback()
         data_import.status = models.DataImportStatusEnum.failed
+        create_import_alert(db, data_import, is_success=False)
         db.commit()
         raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
         
@@ -359,6 +364,8 @@ def process_import(
         before_values=None,
         after_values={"Valid": valid_count, "Failed": failed_count, "Duplicate": duplicate_count}
     )
+    
+    create_import_alert(db, data_import, is_success=True, errors_count=failed_count + duplicate_count)
     
     db.commit()
     db.refresh(data_import)

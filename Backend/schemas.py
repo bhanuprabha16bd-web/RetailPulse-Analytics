@@ -2,7 +2,7 @@ from pydantic import BaseModel, EmailStr, Field, model_validator, ConfigDict
 from pydantic.alias_generators import to_camel
 from typing import Optional
 from datetime import datetime
-from models import RoleEnum, UserStatusEnum, SalesChannelEnum, PaymentMethodEnum, PaymentStatusEnum
+from models import RoleEnum, UserStatusEnum, SalesChannelEnum, PaymentMethodEnum, PaymentStatusEnum, NotificationTypeEnum, NotificationPriorityEnum
 
 class CompanyBase(BaseModel):
     name: str
@@ -200,9 +200,25 @@ class NotificationOut(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
 
     id: int
+    company_id: int
+    user_id: Optional[int] = None
+    type: NotificationTypeEnum
+    title: str
     message: str
+    priority: NotificationPriorityEnum
+    resource_type: Optional[str] = None
+    resource_id: Optional[str] = None
     is_read: bool
     created_at: datetime
+    read_at: Optional[datetime] = None
+
+class PaginatedNotificationsOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    
+    notifications: list[NotificationOut]
+    total: int
+    page: int
+    limit: int
 
 from models import StockMovementEnum
 
@@ -415,9 +431,25 @@ class NotificationOut(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
 
     id: int
+    company_id: int
+    user_id: Optional[int] = None
+    type: NotificationTypeEnum
+    title: str
     message: str
+    priority: NotificationPriorityEnum
+    resource_type: Optional[str] = None
+    resource_id: Optional[str] = None
     is_read: bool
     created_at: datetime
+    read_at: Optional[datetime] = None
+
+class PaginatedNotificationsOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    
+    notifications: list[NotificationOut]
+    total: int
+    page: int
+    limit: int
 
 from models import StockMovementEnum
 

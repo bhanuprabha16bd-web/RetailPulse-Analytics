@@ -19,9 +19,10 @@ async def lifespan(app: FastAPI):
     database.migrate_customers_segment_schema()
     database.migrate_customer_management_schema()
     database.migrate_customer_purchase_summary_schema()
+    database.migrate_notification_schema()
     yield
 
-app = FastAPI(title="RetailPulse Analytics API", lifespan=lifespan)
+app = FastAPI(title="RetailPulse Analytics API", lifespan=lifespan, redirect_slashes=False)
 
 app.add_middleware(
     CORSMiddleware,

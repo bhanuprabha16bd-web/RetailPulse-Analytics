@@ -4,6 +4,7 @@ from sqlalchemy import or_, and_, desc
 from typing import List, Optional
 from datetime import datetime
 import models, schemas
+from services.notification_service import evaluate_product_stock_alert, create_system_alert
 from dependencies import get_current_company_user, RoleChecker, scope_company_query
 from database import get_db
 
@@ -41,11 +42,11 @@ def update_customer_stats(db: Session, customer_id: int, company_id: int):
         customer.segment = segment
         db.add(customer)
         if segment == models.CustomerSegmentEnum.vip:
-            db.add(models.Notification(company_id=company_id, message=f"Customer {customer.full_name} reached VIP status!"))
+            create_system_alert(db, company_id, "VIP Customer", f"Customer {customer.full_name} reached VIP status!")
             
     # Send First Purchase Notification if exact 1
     if sales_count == 1 and old_segment == models.CustomerSegmentEnum.new:
-        db.add(models.Notification(company_id=company_id, message=f"Customer {customer.full_name} completed their first purchase!"))
+        create_system_alert(db, company_id, "First Purchase", f"Customer {customer.full_name} completed their first purchase!")
 
     # Update summary
     summary = db.query(models.CustomerPurchaseSummary).filter(models.CustomerPurchaseSummary.customer_id == customer_id).first()
@@ -225,17 +226,7 @@ def create_sale(sale_create: schemas.SaleCreate, db: Session = Depends(get_db), 
             )
             db.add(audit_oos)
             
-            notification = models.Notification(
-                company_id=current_user.company_id,
-                message=f"Product '{product.name}' is out of stock."
-            )
-            db.add(notification)
-        elif product.stock_quantity <= 5: # Threshold for low stock notification
-            notification = models.Notification(
-                company_id=current_user.company_id,
-                message=f"Low stock alert: '{product.name}' has only {product.stock_quantity} remaining."
-            )
-            db.add(notification)
+            evaluate_product_stock_alert(db, product)
 
         sale_items.append(models.SaleItem(
             product_id=product.id,

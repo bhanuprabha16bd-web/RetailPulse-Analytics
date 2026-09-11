@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 import audit, models, schemas
 from database import get_db
 from dependencies import RoleChecker, get_current_company_user, scope_company_query
+from services.notification_service import evaluate_product_stock_alert
 
 router = APIRouter(prefix="/api/products", tags=["products"])
 
@@ -108,6 +109,8 @@ def create_product(payload: schemas.ProductCreate, request: Request, db: Session
     )
     db.commit()
     db.refresh(product)
+    evaluate_product_stock_alert(db, product)
+    db.commit()
     return product
 
 
@@ -168,6 +171,8 @@ def update_product(product_id: int, payload: schemas.ProductUpdate, request: Req
     
     db.commit()
     db.refresh(product)
+    evaluate_product_stock_alert(db, product)
+    db.commit()
     return product
 
 

@@ -162,6 +162,7 @@ def get_customer_analytics(
         "spending_distribution": spending_distribution,
     }
 
+@router.get("", response_model=List[schemas.CustomerOut])
 @router.get("/", response_model=List[schemas.CustomerOut])
 def get_customers(
     search: Optional[str] = None,
@@ -233,6 +234,7 @@ def get_customers(
 
     return query.all()
 
+@router.post("", response_model=schemas.CustomerOut, status_code=status.HTTP_201_CREATED)
 @router.post("/", response_model=schemas.CustomerOut, status_code=status.HTTP_201_CREATED)
 def create_customer(
     customer: schemas.CustomerCreate,

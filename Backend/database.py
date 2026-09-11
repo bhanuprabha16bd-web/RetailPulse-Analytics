@@ -301,6 +301,42 @@ def migrate_customer_purchase_summary_schema():
     finally:
         db.close()
 
+def migrate_notification_schema():
+    """Add new columns to notifications table and backfill legacy values."""
+    inspector = inspect(engine)
+    if "notifications" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("notifications")}
+    additions = {
+        "user_id": "INTEGER",
+        "type": "VARCHAR DEFAULT 'System Alert'",
+        "title": "VARCHAR DEFAULT 'Alert'",
+        "priority": "VARCHAR DEFAULT 'Medium'",
+        "resource_type": "VARCHAR",
+        "resource_id": "VARCHAR",
+        "read_at": "DATETIME",
+    }
+    with engine.begin() as connection:
+        for name, definition in additions.items():
+            if name not in columns:
+                connection.execute(text(f"ALTER TABLE notifications ADD COLUMN {name} {definition}"))
+
+        connection.execute(text(
+            "UPDATE notifications SET type = 'System Alert' WHERE type IS NULL OR type = ''"
+        ))
+        connection.execute(text(
+            "UPDATE notifications SET title = 'Alert' WHERE title IS NULL OR title = ''"
+        ))
+        connection.execute(text(
+            "UPDATE notifications SET priority = 'Medium' WHERE priority IS NULL OR priority = ''"
+        ))
+
+        connection.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_notifications_user_id "
+            "ON notifications (user_id)"
+        ))
+
 def get_db():
     db = SessionLocal()
     try:

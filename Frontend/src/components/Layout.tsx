@@ -17,8 +17,13 @@ import {
     Category as CategoryIcon,
     Receipt as ReceiptIcon,
     People as PeopleIcon,
-    UploadFile as UploadFileIcon
+    UploadFile as UploadFileIcon,
+    Notifications as NotificationsIcon,
+    NotificationsActive as NotificationsActiveIcon
 } from '@mui/icons-material';
+import { Badge } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
+import { notificationsApi } from '../api/notificationsApi';
 import { useAuth } from '../context/AuthContext';
 
 const drawerWidth = 240;
@@ -34,6 +39,7 @@ const menuItems = [
     { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },
     { text: 'Demand Forecasting', icon: <AnalyticsIcon />, path: '/forecasts', salesOnly: true },
     { text: 'Data Import', icon: <UploadFileIcon />, path: '/data-import', adminOnly: true },
+    { text: 'Notifications', icon: <NotificationsIcon />, path: '/notifications' },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
     { text: 'Audit Logs', icon: <HistoryIcon />, path: '/audit-logs', auditOnly: true },
 ];
@@ -44,6 +50,13 @@ const Layout = () => {
     const { logout, user } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    
+    const { data: unreadData } = useQuery({
+        queryKey: ['notificationsUnreadCount'],
+        queryFn: notificationsApi.getUnreadCount,
+        refetchInterval: 30000, // Poll every 30s
+    });
+    
     const hasAuditAccess = ['Super Admin', 'Company Owner', 'Company Admin'].includes(user?.role ?? '');
     const hasSalesAccess = ['Super Admin', 'Company Owner', 'Company Admin', 'Analyst'].includes(user?.role ?? '');
     const hasInventoryAccess = ['Super Admin', 'Company Owner', 'Company Admin', 'Analyst'].includes(user?.role ?? '');
@@ -134,7 +147,17 @@ const Layout = () => {
                         {menuItems.find(i => i.path === location.pathname)?.text || 'Dashboard'}
                     </Typography>
                     
-                    <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <IconButton
+                            size="large"
+                            aria-label="show new notifications"
+                            color="inherit"
+                            onClick={() => navigate('/notifications')}
+                        >
+                            <Badge badgeContent={unreadData?.count || 0} color="error">
+                                {unreadData?.count && unreadData.count > 0 ? <NotificationsActiveIcon color="primary" /> : <NotificationsIcon />}
+                            </Badge>
+                        </IconButton>
                         <IconButton
                             size="large"
                             aria-label="account of current user"
