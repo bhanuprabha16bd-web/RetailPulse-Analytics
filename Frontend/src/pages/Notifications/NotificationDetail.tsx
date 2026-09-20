@@ -14,6 +14,7 @@ interface NotificationDetailProps {
 export default function NotificationDetail({ notification, onClose }: NotificationDetailProps) {
     const navigate = useNavigate();
 
+    // Keep the detail panel useful even when no notification is selected.
     if (!notification) {
         return (
             <Paper sx={{ p: 3, height: 'calc(100vh - 250px)', display: 'flex', justifyContent: 'center', alignItems: 'center', bgcolor: 'grey.50' }}>
@@ -57,6 +58,7 @@ export default function NotificationDetail({ notification, onClose }: Notificati
                     <Typography variant="caption" color="text.secondary">Time</Typography>
                     <Typography variant="body2">{new Date(notification.createdAt).toLocaleString()}</Typography>
                 </Grid>
+                {/* Some notifications are not linked to a specific resource. */}
                 {notification.resourceType && (
                     <Grid size={6}>
                         <Typography variant="caption" color="text.secondary">Resource</Typography>
@@ -65,6 +67,7 @@ export default function NotificationDetail({ notification, onClose }: Notificati
                 )}
             </Grid>
 
+            {/* Resource actions appear only when this notification supports a destination. */}
             {notification.resourceType === 'Product' && (
                 <Box sx={{ mt: 'auto' }}>
                     <Button variant="contained" fullWidth onClick={() => navigate('/inventory')}>

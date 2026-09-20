@@ -9,15 +9,19 @@ import NotificationDetail from './NotificationDetail';
 
 export default function Notifications() {
     const queryClient = useQueryClient();
+
+    // Keep the selected filters and notification detail panel local to this page.
     const [tab, setTab] = useState(0);
     const [typeFilter, setTypeFilter] = useState('All Types');
     const [priorityFilter, setPriorityFilter] = useState('All Priorities');
     const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
 
+    // Convert the UI's "all" options into omitted API parameters.
     const isReadFilter = tab === 1 ? false : tab === 2 ? true : undefined;
     const typeParam = typeFilter !== 'All Types' ? typeFilter : undefined;
     const priorityParam = priorityFilter !== 'All Priorities' ? priorityFilter : undefined;
 
+    // Refresh periodically so the notification center stays current.
     const { data, isLoading, isError } = useQuery({
         queryKey: ['notifications', { tab, typeFilter, priorityFilter }],
         queryFn: () => notificationsApi.getNotifications({
@@ -47,6 +51,8 @@ export default function Notifications() {
 
     const handleNotificationClick = (notification: Notification) => {
         setSelectedNotification(notification);
+
+        // Opening an unread notification marks it read and refreshes the counts.
         if (!notification.isRead) {
             markAsReadMutation.mutate(notification.id);
         }

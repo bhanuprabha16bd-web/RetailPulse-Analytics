@@ -2,7 +2,7 @@ from pydantic import BaseModel, EmailStr, Field, model_validator, ConfigDict
 from pydantic.alias_generators import to_camel
 from typing import Optional
 from datetime import datetime
-from models import RoleEnum, UserStatusEnum, SalesChannelEnum, PaymentMethodEnum, PaymentStatusEnum, NotificationTypeEnum, NotificationPriorityEnum
+from models import RoleEnum, UserStatusEnum, SalesChannelEnum, PaymentMethodEnum, PaymentStatusEnum, NotificationTypeEnum, NotificationPriorityEnum, ReportFormatEnum, ReportFrequencyEnum
 
 class CompanyBase(BaseModel):
     name: str
@@ -219,6 +219,40 @@ class PaginatedNotificationsOut(BaseModel):
     total: int
     page: int
     limit: int
+
+class ScheduledReportBase(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    report_type: str = Field(min_length=1)
+    filters: dict = Field(default_factory=dict)
+    frequency: ReportFrequencyEnum
+    execution_time: str = Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    recipients: list[EmailStr] = Field(min_length=1)
+    format: ReportFormatEnum = ReportFormatEnum.csv
+    is_active: bool = True
+
+class ScheduledReportCreate(ScheduledReportBase):
+    pass
+
+class ScheduledReportOut(ScheduledReportBase):
+    id: int
+    company_id: int
+    created_by: int
+    last_run_at: Optional[datetime] = None
+    last_status: Optional[str] = None
+    last_error: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+class ReportHistoryOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
+    id: int
+    report_type: str
+    generated_by: int
+    filters: dict
+    format: ReportFormatEnum
+    status: str
+    error_message: Optional[str] = None
+    created_at: datetime
 
 from models import StockMovementEnum
 

@@ -22,6 +22,7 @@ export default function NotificationFilters({
     return (
         <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid size={{ xs: 12, md: 6 }}>
+                {/* The total is shown only on the unfiltered "All" tab. */}
                 <Tabs value={tab} onChange={onTabChange} aria-label="notification tabs">
                     <Tab label={`All ${tab === 0 && totalCount !== undefined ? `(${totalCount})` : ''}`} />
                     <Tab label="Unread" />
@@ -37,6 +38,7 @@ export default function NotificationFilters({
                         onChange={(e: SelectChangeEvent) => onTypeFilterChange(e.target.value)}
                     >
                         <MenuItem value="All Types">All Types</MenuItem>
+                        {/* Keep filter choices in sync with the shared notification definitions. */}
                         {NOTIFICATION_TYPES.map(t => (
                             <MenuItem key={t} value={t}>{t}</MenuItem>
                         ))}

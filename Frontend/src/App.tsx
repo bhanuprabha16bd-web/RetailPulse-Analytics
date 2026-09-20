@@ -25,6 +25,7 @@ import Forecasts from './pages/Forecasts';
 import InventoryForecast from './pages/Inventory/InventoryForecast';
 import DataImport from './pages/DataImport';
 import Notifications from './pages/Notifications';
+import Reports from './pages/Reports';
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,7 @@ function App() {
                   <Route path="/customers/analytics" element={<CustomerAnalytics />} />
                   <Route path="/customers/:id" element={<CustomerProfile />} />
                   <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/reports" element={<Reports />} />
                   <Route path="/analytics/sales" element={<SalesAnalytics />} />
                   <Route path="/forecasts" element={<Forecasts />} />
                   <Route path="/data-import" element={<DataImport />} />

@@ -65,6 +65,15 @@ class DataImportTypeEnum(str, enum.Enum):
     customers = "Customers"
     sales = "Sales"
 
+class ReportFormatEnum(str, enum.Enum):
+    csv = "CSV"
+    pdf = "PDF"
+
+class ReportFrequencyEnum(str, enum.Enum):
+    daily = "Daily"
+    weekly = "Weekly"
+    monthly = "Monthly"
+
 class NotificationTypeEnum(str, enum.Enum):
     stockout_risk = "Stockout Risk"
     low_stock = "Low Stock"
@@ -382,6 +391,44 @@ class DataImport(Base):
     company = relationship("Company")
     user = relationship("User")
     errors = relationship("DataImportError", back_populates="data_import", cascade="all, delete-orphan")
+
+class ReportHistory(Base):
+    __tablename__ = "report_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    report_type = Column(String, nullable=False, index=True)
+    generated_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    filters = Column(String, nullable=False, default="{}")
+    format = Column(Enum(ReportFormatEnum), nullable=False)
+    status = Column(String, nullable=False, default="Success")
+    error_message = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    company = relationship("Company")
+    user = relationship("User")
+
+class ScheduledReport(Base):
+    __tablename__ = "scheduled_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    report_type = Column(String, nullable=False)
+    filters = Column(String, nullable=False, default="{}")
+    frequency = Column(Enum(ReportFrequencyEnum), nullable=False)
+    execution_time = Column(String, nullable=False)
+    recipients = Column(String, nullable=False, default="[]")
+    format = Column(Enum(ReportFormatEnum), nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True)
+    last_run_at = Column(DateTime(timezone=True), nullable=True)
+    last_status = Column(String, nullable=True)
+    last_error = Column(String, nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    company = relationship("Company")
+    creator = relationship("User")
 
 class DataImportError(Base):
     __tablename__ = "data_import_errors"
