@@ -8,6 +8,7 @@ import { formatDistanceToNow, parseISO } from 'date-fns';
 import { Notification } from '../../api/notificationsApi';
 import { getIconForType, getPriorityColor } from './notificationHelpers';
 
+// Props for the notification list: data, loading state, and click action.
 interface NotificationListProps {
     notifications: Notification[];
     isLoading: boolean;
@@ -15,6 +16,7 @@ interface NotificationListProps {
     onNotificationClick: (notification: Notification) => void;
 }
 
+// Displays the notification list, including loading, error, and empty states.
 export default function NotificationList({
     notifications, isLoading, isError, onNotificationClick
 }: NotificationListProps) {

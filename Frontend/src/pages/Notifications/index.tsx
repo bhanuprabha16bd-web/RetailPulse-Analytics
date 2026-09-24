@@ -7,6 +7,7 @@ import NotificationFilters from './NotificationFilters';
 import NotificationList from './NotificationList';
 import NotificationDetail from './NotificationDetail';
 
+// Main page for the notification center. It fetches notifications, applies filters, and manages the read/unread state.
 export default function Notifications() {
     const queryClient = useQueryClient();
 
@@ -33,6 +34,7 @@ export default function Notifications() {
         refetchInterval: 30000,
     });
 
+    // Mark a notification as read after it is opened.
     const markAsReadMutation = useMutation({
         mutationFn: notificationsApi.markAsRead,
         onSuccess: () => {
@@ -41,6 +43,7 @@ export default function Notifications() {
         }
     });
 
+    // Mark all notifications as read from this page.
     const markAllAsReadMutation = useMutation({
         mutationFn: notificationsApi.markAllAsRead,
         onSuccess: () => {
@@ -49,10 +52,10 @@ export default function Notifications() {
         }
     });
 
+    // When a notification is selected, show its details and mark it as read if needed.
     const handleNotificationClick = (notification: Notification) => {
         setSelectedNotification(notification);
 
-        // Opening an unread notification marks it read and refreshes the counts.
         if (!notification.isRead) {
             markAsReadMutation.mutate(notification.id);
         }
@@ -60,7 +63,7 @@ export default function Notifications() {
 
     return (
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            {/* Header */}
+            {/* Header with title and bulk action button. */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                 <Box>
                     <Typography variant="h4" sx={{ fontWeight: 'bold' }}>Notification Center</Typography>
@@ -78,7 +81,7 @@ export default function Notifications() {
                 </Button>
             </Box>
 
-            {/* Filters */}
+            {/* Filter controls for tabs, notification type, and priority level. */}
             <NotificationFilters
                 tab={tab}
                 onTabChange={(_e, v) => setTab(v)}
@@ -89,7 +92,7 @@ export default function Notifications() {
                 onPriorityFilterChange={setPriorityFilter}
             />
 
-            {/* Content */}
+            {/* Main content area: list + detail panel. */}
             <Grid container spacing={3} sx={{ flexGrow: 1 }}>
                 <Grid size={{ xs: 12, md: 8 }}>
                     <NotificationList

@@ -4,6 +4,7 @@ import {
 } from '@mui/material';
 import { NOTIFICATION_TYPES, PRIORITY_LEVELS } from './notificationHelpers';
 
+// Props for the notification filter bar: tab state and current filter values.
 interface NotificationFiltersProps {
     tab: number;
     onTabChange: (event: React.SyntheticEvent, newValue: number) => void;
@@ -14,6 +15,7 @@ interface NotificationFiltersProps {
     onPriorityFilterChange: (value: string) => void;
 }
 
+// Shows the tab buttons and filter dropdowns used to limit the notification list.
 export default function NotificationFilters({
     tab, onTabChange, totalCount,
     typeFilter, onTypeFilterChange,

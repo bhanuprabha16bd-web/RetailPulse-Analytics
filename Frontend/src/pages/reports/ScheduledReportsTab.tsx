@@ -19,6 +19,7 @@ import { ReportFilters } from './ReportFilters';
 import type { Filters, Schedule } from './types';
 import { reportLabel } from './utils';
 
+// Props for creating or editing scheduled report jobs.
 interface ScheduledReportsTabProps {
   reportType: string;
   filters: Filters;
@@ -44,6 +45,7 @@ interface ScheduledReportsTabProps {
   onCancelEdit: () => void;
 }
 
+// Converts a date string into a readable format for display.
 function formatScheduleDate(value?: string) {
   if (!value) return 'Never';
 
@@ -55,6 +57,7 @@ function formatScheduleDate(value?: string) {
   return date.toLocaleString();
 }
 
+// Lets the user create, edit, run, and manage scheduled reports.
 export function ScheduledReportsTab({
   reportType,
   filters,
@@ -86,6 +89,7 @@ export function ScheduledReportsTab({
         </Alert>
       )}
 
+      {/* Reuse the standard report filter form so the schedule matches the report criteria. */}
       <ReportFilters
         reportType={reportType}
         filters={filters}
@@ -94,6 +98,7 @@ export function ScheduledReportsTab({
       />
 
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 1.5, alignItems: { md: 'center' }, mb: 2 }}>
+        {/* Choose how often the report should run. */}
         <FormControl size="small">
           <InputLabel>Frequency</InputLabel>
           <Select
@@ -107,6 +112,7 @@ export function ScheduledReportsTab({
           </Select>
         </FormControl>
 
+        {/* Set the time when the report should be generated. */}
         <TextField
           size="small"
           type="time"
@@ -116,6 +122,7 @@ export function ScheduledReportsTab({
           slotProps={{ inputLabel: { shrink: true } }}
         />
 
+        {/* Add emails that should receive the generated report. */}
         <TextField
           size="small"
           label="Recipients"
@@ -125,6 +132,7 @@ export function ScheduledReportsTab({
           sx={{ minWidth: 260 }}
         />
 
+        {/* Select the export file format for the report. */}
         <FormControl size="small">
           <InputLabel>Format</InputLabel>
           <Select
@@ -139,7 +147,8 @@ export function ScheduledReportsTab({
         </FormControl>
       </Box>
 
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
+      {/* Toggle whether this schedule is currently active. */}
+      <Stack direction="row" spacing={1} sx={{ mb: 3, alignItems: 'center' }}>
         <Typography variant="body2" color="text.secondary">Active</Typography>
         <Switch
           checked={schedule.is_active}
@@ -148,6 +157,7 @@ export function ScheduledReportsTab({
       </Stack>
 
       <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
+        {/* Save the new schedule or update an existing one. */}
         <Button
           variant="contained"
           startIcon={<Save />}
@@ -179,9 +189,17 @@ export function ScheduledReportsTab({
                     <Typography variant="body2" color="text.secondary">
                       {item.frequency} • {item.execution_time} • {item.format}
                     </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      Last run: {formatScheduleDate(item.last_run_at)} • Status: {item.last_status || 'Not run yet'}
+                    </Typography>
+                    {item.last_error && (
+                      <Typography variant="caption" color="error.main" sx={{ display: 'block' }}>
+                        Error: {item.last_error}
+                      </Typography>
+                    )}
                   </Box>
 
-                  <Stack direction="row" spacing={1}>
+                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                     <Chip label={item.is_active ? 'Active' : 'Inactive'} color={item.is_active ? 'success' : 'default'} size="small" />
                     <Switch
                       checked={item.is_active}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Inventory, CheckCircleOutlined, ErrorOutlined, Receipt, InfoOutlined } from '@mui/icons-material';
 
+// Return the correct icon for each notification type so the UI looks consistent.
 export const getIconForType = (type: string) => {
     switch (type) {
         case 'Stockout Risk':
@@ -19,6 +20,7 @@ export const getIconForType = (type: string) => {
     }
 };
 
+// Map each notification priority to a Material UI color style.
 export const getPriorityColor = (priority: string): 'error' | 'warning' | 'info' | 'default' => {
     switch (priority) {
         case 'Critical': return 'error';
@@ -29,9 +31,11 @@ export const getPriorityColor = (priority: string): 'error' | 'warning' | 'info'
     }
 };
 
+// Shared notification type list used in filters and UI labels.
 export const NOTIFICATION_TYPES = [
     'Stockout Risk', 'Low Stock', 'Overstock', 'Import Completed',
     'Import Failed', 'Sales Alert', 'System Alert',
 ];
 
+// Shared priority list used in filters and badges.
 export const PRIORITY_LEVELS = ['Critical', 'High', 'Medium', 'Low'];

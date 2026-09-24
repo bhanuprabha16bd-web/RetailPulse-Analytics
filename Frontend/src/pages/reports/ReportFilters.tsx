@@ -10,6 +10,7 @@ import {
 
 import { reportTypes, type Filters } from './types';
 
+// Props for the filter panel: selected report type, current filter values, and change handlers.
 interface ReportFiltersProps {
   reportType: string;
   filters: Filters;
@@ -17,6 +18,7 @@ interface ReportFiltersProps {
   onFilterChange: (key: keyof Filters, value: string) => void;
 }
 
+// This component lets the user choose the report type and the conditions used to generate the report.
 export function ReportFilters({
   reportType,
   filters,
@@ -26,6 +28,7 @@ export function ReportFilters({
   return (
     <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 1.5, flexWrap: 'wrap' }}>
+        {/* Choose which report to generate. */}
         <FormControl size="small" sx={{ minWidth: 220 }}>
           <InputLabel>Report type</InputLabel>
           <Select value={reportType} label="Report type" onChange={(event) => onReportTypeChange(event.target.value)}>
@@ -37,6 +40,7 @@ export function ReportFilters({
           </Select>
         </FormControl>
 
+        {/* Date range filter for the report. */}
         <TextField
           size="small"
           type="date"
@@ -55,6 +59,7 @@ export function ReportFilters({
           slotProps={{ inputLabel: { shrink: true } }}
         />
 
+        {/* Filters for product, category, brand, and customer. */}
         <TextField
           size="small"
           label="Product ID"
@@ -83,6 +88,7 @@ export function ReportFilters({
           onChange={(event) => onFilterChange('customer_id', event.target.value)}
         />
 
+        {/* Sales condition filter, such as Paid or Pending. */}
         <FormControl size="small" sx={{ minWidth: 145 }}>
           <InputLabel>Sales status</InputLabel>
           <Select value={filters.sales_status} label="Sales status" onChange={(event) => onFilterChange('sales_status', event.target.value)}>
@@ -95,6 +101,7 @@ export function ReportFilters({
           </Select>
         </FormControl>
 
+        {/* Inventory condition filter, such as In Stock or Low Stock. */}
         <FormControl size="small" sx={{ minWidth: 145 }}>
           <InputLabel>Stock status</InputLabel>
           <Select value={filters.stock_status} label="Stock status" onChange={(event) => onFilterChange('stock_status', event.target.value)}>

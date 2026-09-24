@@ -14,6 +14,7 @@ import {
 import type { ReportResponse } from './types';
 import { humanize } from './utils';
 
+// Props for the table: report data, loading state, sorting, and page actions.
 interface ReportTableProps {
   report: ReportResponse | null;
   loading: boolean;
@@ -24,6 +25,7 @@ interface ReportTableProps {
   onPageChange: (nextPage: number) => void;
 }
 
+// Displays the generated report data, loading state, sorting controls, and pagination.
 export function ReportTable({
   report,
   loading,

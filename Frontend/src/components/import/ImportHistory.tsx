@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Box, Typography, Paper, Button, Chip,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -7,22 +7,27 @@ import {
 import { Refresh as RefreshIcon, Download as DownloadIcon } from '@mui/icons-material';
 import { importApi, DataImport } from '../../api/importApi';
 
+// Props for this history table: list of imports and a refresh function.
 interface ImportHistoryProps {
   historyData?: DataImport[];
   refetchHistory: () => void;
 }
 
+// Shows a list of previous import attempts and allows viewing details or downloading error rows.
 export default function ImportHistory({ historyData, refetchHistory }: ImportHistoryProps) {
   const [selectedImport, setSelectedImport] = useState<DataImport | null>(null);
 
+  // Select a specific import to view in the detail dialog.
   const handleView = (row: DataImport) => {
     setSelectedImport(row);
   };
 
+  // Close the detail dialog.
   const handleClose = () => {
     setSelectedImport(null);
   };
 
+  // Download all validation errors for a selected import as CSV.
   const handleDownloadErrors = async () => {
     if (!selectedImport) return;
     try {
@@ -31,10 +36,10 @@ export default function ImportHistory({ historyData, refetchHistory }: ImportHis
         alert("No errors found for this import.");
         return;
       }
-      
+
       const headers = ['Row Number', 'Error Type', 'Error Message', 'Raw Data'];
       const csvRows = [headers.join(',')];
-      
+
       errors.forEach(err => {
         const row = [
           err.rowNumber,
@@ -44,7 +49,7 @@ export default function ImportHistory({ historyData, refetchHistory }: ImportHis
         ];
         csvRows.push(row.join(','));
       });
-      
+
       const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -54,7 +59,7 @@ export default function ImportHistory({ historyData, refetchHistory }: ImportHis
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
     } catch (error) {
       console.error("Failed to fetch errors:", error);
       alert("Failed to download errors.");
@@ -68,7 +73,7 @@ export default function ImportHistory({ historyData, refetchHistory }: ImportHis
           <Typography variant="h6" sx={{ fontWeight: 'bold' }}>Import History</Typography>
           <Button variant="outlined" size="small" startIcon={<RefreshIcon />} onClick={refetchHistory}>Refresh</Button>
         </Box>
-        
+
         <TableContainer>
           <Table size="small">
             <TableHead>
@@ -95,11 +100,11 @@ export default function ImportHistory({ historyData, refetchHistory }: ImportHis
                   <TableCell sx={{ color: 'success.main', fontWeight: 'bold' }}>{row.successfulRecords}</TableCell>
                   <TableCell sx={{ color: 'error.main', fontWeight: 'bold' }}>{row.failedRecords}</TableCell>
                   <TableCell>
-                    <Chip 
-                      label={row.status} 
+                    <Chip
+                      label={row.status}
                       size="small"
                       color={
-                        row.status === 'Completed' ? 'success' : 
+                        row.status === 'Completed' ? 'success' :
                         row.status === 'Completed with Errors' ? 'warning' :
                         row.status === 'Failed' ? 'error' : 'default'
                       }
@@ -121,48 +126,48 @@ export default function ImportHistory({ historyData, refetchHistory }: ImportHis
         </TableContainer>
       </Paper>
 
-      {/* Import Details Dialog */}
+      {/* Details dialog for one selected import. */}
       <Dialog open={!!selectedImport} onClose={handleClose} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold' }}>Import Details</DialogTitle>
         <DialogContent dividers>
           {selectedImport && (
             <Grid container spacing={2}>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <Typography variant="caption" color="text.secondary">Import ID</Typography>
-                <Typography variant="body1" fontWeight="bold">IMP-{selectedImport.id.toString().padStart(4, '0')}</Typography>
+                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>IMP-{selectedImport.id.toString().padStart(4, '0')}</Typography>
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <Typography variant="caption" color="text.secondary">Type</Typography>
-                <Typography variant="body1" fontWeight="bold">{selectedImport.importType}</Typography>
+                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{selectedImport.importType}</Typography>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="caption" color="text.secondary">Filename</Typography>
                 <Typography variant="body1">{selectedImport.filename}</Typography>
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <Typography variant="caption" color="text.secondary">Total Records</Typography>
-                <Typography variant="body1" fontWeight="bold">{selectedImport.totalRecords}</Typography>
+                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{selectedImport.totalRecords}</Typography>
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <Typography variant="caption" color="text.secondary">Successful</Typography>
-                <Typography variant="body1" fontWeight="bold" color="success.main">{selectedImport.successfulRecords}</Typography>
+                <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'success.main' }}>{selectedImport.successfulRecords}</Typography>
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <Typography variant="caption" color="text.secondary">Failed</Typography>
-                <Typography variant="body1" fontWeight="bold" color="error.main">{selectedImport.failedRecords}</Typography>
+                <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'error.main' }}>{selectedImport.failedRecords}</Typography>
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <Typography variant="caption" color="text.secondary">Duplicates</Typography>
-                <Typography variant="body1" fontWeight="bold" color="warning.main">{selectedImport.duplicateRecords}</Typography>
+                <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'warning.main' }}>{selectedImport.duplicateRecords}</Typography>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="caption" color="text.secondary">Status</Typography>
-                <Box mt={0.5}>
-                  <Chip 
-                    label={selectedImport.status} 
+                <Box sx={{ mt: 0.5 }}>
+                  <Chip
+                    label={selectedImport.status}
                     size="small"
                     color={
-                      selectedImport.status === 'Completed' ? 'success' : 
+                      selectedImport.status === 'Completed' ? 'success' :
                       selectedImport.status === 'Completed with Errors' ? 'warning' :
                       selectedImport.status === 'Failed' ? 'error' : 'default'
                     }
@@ -174,16 +179,16 @@ export default function ImportHistory({ historyData, refetchHistory }: ImportHis
         </DialogContent>
         <DialogActions sx={{ p: 2, display: 'flex', justifyContent: 'space-between' }}>
           {(selectedImport?.failedRecords || 0) > 0 || (selectedImport?.duplicateRecords || 0) > 0 ? (
-            <Button 
-              variant="outlined" 
-              color="error" 
+            <Button
+              variant="outlined"
+              color="error"
               startIcon={<DownloadIcon />}
               onClick={handleDownloadErrors}
             >
               Download Errors
             </Button>
           ) : (
-            <Box /> // Empty box to keep 'Close' button on the right
+            <Box />
           )}
           <Button variant="contained" onClick={handleClose}>Close</Button>
         </DialogActions>

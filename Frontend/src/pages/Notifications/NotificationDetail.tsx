@@ -6,11 +6,13 @@ import { useNavigate } from 'react-router-dom';
 import { Notification } from '../../api/notificationsApi';
 import { getIconForType, getPriorityColor } from './notificationHelpers';
 
+// Props for the detail panel: selected notification and close action.
 interface NotificationDetailProps {
     notification: Notification | null;
     onClose: () => void;
 }
 
+// Shows the full details of a selected notification and gives quick actions when available.
 export default function NotificationDetail({ notification, onClose }: NotificationDetailProps) {
     const navigate = useNavigate();
 
