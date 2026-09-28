@@ -26,6 +26,7 @@ import InventoryForecast from './pages/Inventory/InventoryForecast';
 import DataImport from './pages/DataImport';
 import Notifications from './pages/Notifications';
 import Reports from './pages/Reports';
+import DataQuality from './pages/DataQuality';
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,7 @@ function App() {
                   <Route path="/notifications" element={<Notifications />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/audit-logs" element={<AuditLogs />} />
+                  <Route path="/data-quality" element={<DataQuality />} />
                   <Route path="/settings" element={<div>Settings Page Placeholder</div>} />
                 </Route>
               

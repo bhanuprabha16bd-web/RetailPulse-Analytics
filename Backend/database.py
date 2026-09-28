@@ -337,6 +337,20 @@ def migrate_notification_schema():
             "ON notifications (user_id)"
         ))
 
+def migrate_data_quality_schema():
+    """Create data_quality_issues, reconciliation_runs, issue_status_history tables if they don't exist."""
+    import models
+    inspector = inspect(engine)
+    
+    if "reconciliation_runs" not in inspector.get_table_names():
+        models.ReconciliationRun.__table__.create(engine)
+        
+    if "data_quality_issues" not in inspector.get_table_names():
+        models.DataQualityIssue.__table__.create(engine)
+        
+    if "issue_status_history" not in inspector.get_table_names():
+        models.IssueStatusHistory.__table__.create(engine)
+
 def get_db():
     db = SessionLocal()
     try:

@@ -441,3 +441,101 @@ class DataImportError(Base):
     raw_data = Column(String, nullable=True) # JSON representation of the failing row
 
     data_import = relationship("DataImport", back_populates="errors")
+
+# Data Quality Enums
+class DQIssueTypeEnum(str, enum.Enum):
+    stock_mismatch = "Stock Mismatch"
+    invalid_product_ref = "Invalid Product Ref"
+    invalid_customer_ref = "Invalid Customer Ref"
+    duplicate_sku = "Duplicate SKU"
+    missing_information = "Missing Information"
+    stock_movement_mismatch = "Stock Movement Mismatch"
+    report_mismatch = "Report Mismatch"
+    product_deactivated = "Product Deactivated"
+    excess_sale_quantity = "Excess Sale Quantity"
+
+class DQSeverityEnum(str, enum.Enum):
+    critical = "Critical"
+    high = "High"
+    medium = "Medium"
+    low = "Low"
+
+class DQIssueStatusEnum(str, enum.Enum):
+    open = "Open"
+    investigating = "Investigating"
+    resolved = "Resolved"
+    ignored = "Ignored"
+
+class DQModuleEnum(str, enum.Enum):
+    inventory = "Inventory"
+    sales = "Sales"
+    products = "Products"
+    customers = "Customers"
+    reports = "Reports"
+
+class ReconciliationStatusEnum(str, enum.Enum):
+    running = "Running"
+    completed = "Completed"
+    completed_with_issues = "Completed with Issues"
+    failed = "Failed"
+
+class DataQualityIssue(Base):
+    __tablename__ = "data_quality_issues"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    issue_id = Column(String, index=True, nullable=False)
+    issue_type = Column(Enum(DQIssueTypeEnum), nullable=False)
+    severity = Column(Enum(DQSeverityEnum), nullable=False)
+    module = Column(Enum(DQModuleEnum), nullable=False)
+    affected_record = Column(String, nullable=False)
+    resource_type = Column(String, nullable=True)
+    resource_id = Column(Integer, nullable=True)
+    description = Column(String, nullable=False)
+    status = Column(Enum(DQIssueStatusEnum), default=DQIssueStatusEnum.open, nullable=False)
+    detected_at = Column(DateTime(timezone=True), server_default=func.now())
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+    resolved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    resolution_note = Column(String, nullable=True)
+    related_data = Column(String, nullable=True)
+    reconciliation_id = Column(Integer, ForeignKey("reconciliation_runs.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    company = relationship("Company")
+    resolver = relationship("User", foreign_keys=[resolved_by])
+    reconciliation_run = relationship("ReconciliationRun", back_populates="issues", foreign_keys=[reconciliation_id])
+
+class ReconciliationRun(Base):
+    __tablename__ = "reconciliation_runs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    execution_id = Column(String, index=True, nullable=False)
+    started_at = Column(DateTime(timezone=True), server_default=func.now())
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    triggered_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    records_checked = Column(Integer, default=0, nullable=False)
+    issues_found = Column(Integer, default=0, nullable=False)
+    issues_resolved = Column(Integer, default=0, nullable=False)
+    failed_checks = Column(Integer, default=0, nullable=False)
+    status = Column(Enum(ReconciliationStatusEnum), default=ReconciliationStatusEnum.running, nullable=False)
+    error_message = Column(String, nullable=True)
+
+    company = relationship("Company")
+    trigger_user = relationship("User", foreign_keys=[triggered_by])
+    issues = relationship("DataQualityIssue", back_populates="reconciliation_run")
+
+class IssueStatusHistory(Base):
+    __tablename__ = "issue_status_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    issue_id = Column(Integer, ForeignKey("data_quality_issues.id"), nullable=False)
+    previous_status = Column(String, nullable=False)
+    new_status = Column(String, nullable=False)
+    changed_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    changed_at = Column(DateTime(timezone=True), server_default=func.now())
+    note = Column(String, nullable=True)
+
+    issue = relationship("DataQualityIssue")
+    user = relationship("User")

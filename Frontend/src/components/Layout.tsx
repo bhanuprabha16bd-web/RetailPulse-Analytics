@@ -20,7 +20,8 @@ import {
     UploadFile as UploadFileIcon,
     Notifications as NotificationsIcon,
     NotificationsActive as NotificationsActiveIcon,
-    Description as ReportsIcon
+    Description as ReportsIcon,
+    VerifiedUser as VerifiedUserIcon
 } from '@mui/icons-material';
 import { Badge } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
@@ -42,8 +43,9 @@ const menuItems = [
     { text: 'Demand Forecasting', icon: <AnalyticsIcon />, path: '/forecasts', salesOnly: true },
     { text: 'Data Import', icon: <UploadFileIcon />, path: '/data-import', adminOnly: true },
     { text: 'Notifications', icon: <NotificationsIcon />, path: '/notifications' },
-    { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
     { text: 'Audit Logs', icon: <HistoryIcon />, path: '/audit-logs', auditOnly: true },
+    { text: 'Data Quality', icon: <VerifiedUserIcon />, path: '/data-quality', adminOnly: true },
+    { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
 ];
 
 const Layout = () => {

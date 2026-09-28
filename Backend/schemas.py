@@ -714,3 +714,95 @@ class ImportValidationResponse(BaseModel):
     valid_records: int
     invalid_records: int
     duplicate_records: int
+
+from models import DQIssueTypeEnum, DQSeverityEnum, DQIssueStatusEnum, DQModuleEnum, ReconciliationStatusEnum
+
+class DataQualityIssueOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
+    id: int
+    company_id: int
+    issue_id: str
+    issue_type: DQIssueTypeEnum
+    severity: DQSeverityEnum
+    module: DQModuleEnum
+    affected_record: str
+    resource_type: Optional[str] = None
+    resource_id: Optional[int] = None
+    description: str
+    status: DQIssueStatusEnum
+    detected_at: datetime
+    resolved_at: Optional[datetime] = None
+    resolved_by: Optional[int] = None
+    resolution_note: Optional[str] = None
+    reconciliation_id: Optional[int] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+class IssueStatusHistoryOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
+    id: int
+    issue_id: int
+    previous_status: str
+    new_status: str
+    changed_by: int
+    changed_at: datetime
+    note: Optional[str] = None
+    user: Optional['UserOut'] = None
+
+class DataQualityIssueDetailOut(DataQualityIssueOut):
+    related_data: Optional[dict] = None
+    status_history: list[IssueStatusHistoryOut] = []
+    resolver: Optional['UserOut'] = None
+
+class IssueStatusUpdateRequest(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    new_status: DQIssueStatusEnum
+    resolution_note: Optional[str] = None
+
+class ReconciliationRunOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
+    id: int
+    company_id: int
+    execution_id: str
+    started_at: datetime
+    completed_at: Optional[datetime] = None
+    triggered_by: int
+    records_checked: int
+    issues_found: int
+    issues_resolved: int
+    failed_checks: int
+    status: ReconciliationStatusEnum
+    error_message: Optional[str] = None
+    trigger_user: Optional['UserOut'] = None
+
+class ReconciliationSummaryOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    total_records_checked: int
+    valid_records: int
+    warnings_count: int
+    errors_count: int
+    unresolved_issues: int
+    last_reconciliation_time: Optional[datetime] = None
+
+class PaginatedIssuesOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    issues: list[DataQualityIssueOut]
+    total: int
+    page: int
+    limit: int
+
+class IssuesByTypeOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    issue_type: str
+    count: int
+
+class IssuesBySeverityOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    severity: str
+    count: int
+
+class IssuesStatsOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    by_type: list[IssuesByTypeOut]
+    by_severity: list[IssuesBySeverityOut]
+
