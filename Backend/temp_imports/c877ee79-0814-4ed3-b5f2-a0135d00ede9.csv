@@ -1,0 +1,21 @@
+SKU,Quantity Change,Movement Type,Reason,Remarks
+LP001,10,Stock Addition,Restocked from supplier,PO-2025-001 received
+MN001,5,Stock Addition,Restocked from supplier,PO-2025-002 received
+KB001,20,Stock Addition,Restocked from supplier,PO-2025-003 received
+MS001,15,Stock Addition,Restocked from supplier,PO-2025-004 received
+HP001,8,Stock Addition,Restocked from supplier,PO-2025-005 received
+WC001,12,Stock Addition,Restocked from supplier,Backorder fulfilled
+HB001,25,Stock Addition,Restocked from supplier,New stock arrived
+SS001,10,Stock Addition,Restocked from supplier,Flash sale preparation
+GT001,5,Stock Addition,Restocked from supplier,Low stock replenishment
+SP001,6,Stock Addition,Restocked from supplier,Holiday season stock
+LP001,-2,Stock Removal,Damaged goods,Units damaged during transit - write-off
+MN001,-1,Stock Removal,Damaged goods,Screen cracked on delivery
+KB001,-3,Stock Removal,Customer return,Defective switches reported
+MS001,-1,Stock Removal,Damaged goods,Lost in warehouse audit
+HP001,-2,Stock Removal,Customer return,Not as described - returned
+DL001,30,Stock Addition,Restocked from supplier,Bulk order from supplier
+CP001,20,Stock Addition,Restocked from supplier,New batch received
+WR001,25,Stock Addition,Restocked from supplier,Reorder triggered
+PS001,40,Stock Addition,Restocked from supplier,Promotional stock
+CM001,10,Manual Adjustment,Inventory count correction,Physical count mismatch resolved

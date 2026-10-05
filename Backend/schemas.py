@@ -688,9 +688,13 @@ class DataImportOut(DataImportBase):
     successful_records: int
     failed_records: int
     duplicate_records: int
+    skipped_records: int
+    processing_progress: int
+    processing_speed: int
     status: DataImportStatusEnum
     created_at: datetime
     completed_at: Optional[datetime] = None
+    uploader_name: Optional[str] = None
 
 class DataImportErrorOut(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
@@ -714,6 +718,34 @@ class ImportValidationResponse(BaseModel):
     valid_records: int
     invalid_records: int
     duplicate_records: int
+
+class ValidationErrorDetail(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    row_number: int
+    field: Optional[str] = None
+    error_type: str
+    error_message: str
+    raw_data: Optional[dict] = None
+
+class DetailedValidationResponse(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    total_records: int
+    valid_records: int
+    invalid_records: int
+    duplicate_records: int
+    validation_errors: list[ValidationErrorDetail] = []
+    preview_data: list[dict] = []
+
+class ImportStatsResponse(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    total_imports: int
+    completed: int
+    completed_with_errors: int
+    failed: int
+    last_import: Optional[DataImportOut] = None
+    total_growth: Optional[float] = None
+    completed_growth: Optional[float] = None
+    failed_growth: Optional[float] = None
 
 from models import DQIssueTypeEnum, DQSeverityEnum, DQIssueStatusEnum, DQModuleEnum, ReconciliationStatusEnum
 

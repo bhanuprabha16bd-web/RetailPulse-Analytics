@@ -1,0 +1,11 @@
+Product Name,SKU,Category,Unit Price,Stock Quantity,Brand,Description
+Laptop Pro 15,LP001,Electronics,80000,20,Dell,Valid product - duplicate SKU test
+Wireless Earbuds,,Electronics,2500,30,boAt,Missing SKU - should fail validation
+Smart TV 55inch,TV001,Electronics,-15000,5,LG,Negative price - should fail validation
+Mechanical Keyboard,KB001,Accessories,3500,50,Logitech,Valid product - in-file duplicate SKU
+Office Desk,OD001,Furniture,12000,-5,IKEA,Negative stock - should fail validation
+USB Hub 4-Port,UH001,Accessories,1500,twenty,Ugreen,Non-numeric stock - should fail
+Printer Ink Black,PI001,,,500,HP,Missing Category and Price - should fail
+Gaming Chair,GC001,Furniture,18000,15,DXRacer,Valid product
+Noise Cancelling Headphones,HP001,Electronics,12000,18,Sony,Valid product - DB duplicate test (if HP001 exists)
+Desk Fan,DF001,Electronics,2800,25,Havells,Valid product

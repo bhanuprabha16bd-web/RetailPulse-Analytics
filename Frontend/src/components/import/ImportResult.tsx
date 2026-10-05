@@ -1,67 +1,49 @@
-import { Box, Typography, Paper, LinearProgress, Button } from '@mui/material';
-import {
-  CheckCircle as CheckCircleIcon,
-  Download as DownloadIcon
-} from '@mui/icons-material';
-import { DataImport } from '../../api/importApi';
+import React from 'react';
+import { Paper, Typography, Button, Box, Alert } from '@mui/material';
+import DownloadIcon from '@mui/icons-material/Download';
+import { DataImport, importApi } from '../../api/importApi';
 
 interface ImportResultProps {
-  isImporting: boolean;
-  importResult: DataImport | null;
+  data: DataImport;
+  onReset: () => void;
 }
 
-export default function ImportResult({ isImporting, importResult }: ImportResultProps) {
-  if (!isImporting && !importResult) return null;
+export const ImportResult: React.FC<ImportResultProps> = ({ data, onReset }) => {
+  let severity: 'success' | 'warning' | 'error' | 'info' = 'info';
+  if (data.status === 'Completed') severity = 'success';
+  if (data.status === 'Completed with Errors') severity = 'warning';
+  if (data.status === 'Failed') severity = 'error';
+  if (data.status === 'Cancelled') severity = 'warning';
 
   return (
-    <Paper sx={{ mt: 3, p: 3, borderRadius: 2 }}>
-      <Typography variant="h6" sx={{ fontWeight: 'bold' }} gutterBottom>Import Processing</Typography>
-      
-      {isImporting ? (
-         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-           <LinearProgress sx={{ flexGrow: 1, height: 10, borderRadius: 5 }} />
-           <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Processing...</Typography>
-         </Box>
-      ) : importResult && (
-         <Box sx={{ bgcolor: '#f0fdf4', p: 3, borderRadius: 2, border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-             <CheckCircleIcon color="success" sx={{ fontSize: 40 }} />
-             <Box>
-               <Typography variant="h6" sx={{ fontWeight: 'bold' }} color="success.main">
-                 {importResult.status === 'Completed' ? 'Import Completed Successfully' : 'Import Completed with Errors'}
-               </Typography>
-               <Typography variant="body2" color="text.secondary">
-                 Import processed on {new Date(importResult.completedAt || '').toLocaleString()}
-               </Typography>
-             </Box>
-           </Box>
+    <Paper sx={{ p: 3, borderRadius: 2 }}>
+      <Alert severity={severity} sx={{ mb: 3 }}>
+        <Typography variant="subtitle1">
+          {data.status === 'Completed' && 'Import completed successfully!'}
+          {data.status === 'Completed with Errors' && 'Import completed with some errors.'}
+          {data.status === 'Failed' && 'Import failed.'}
+          {data.status === 'Cancelled' && 'Import cancelled.'}
+        </Typography>
+        <Typography variant="body2">
+          {data.successfulRecords} records processed successfully. {data.failedRecords} failed, {data.duplicateRecords} duplicates.
+        </Typography>
+      </Alert>
 
-           <Box sx={{ display: 'flex', gap: 2 }}>
-             <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 1, border: '1px solid #e0e0e0', textAlign: 'center', minWidth: 100 }}>
-                <Typography variant="caption" color="text.secondary">Total Records</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>{importResult.totalRecords}</Typography>
-             </Box>
-             <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 1, border: '1px solid #e0e0e0', textAlign: 'center', minWidth: 100 }}>
-                <Typography variant="caption" color="text.secondary">Successfully Added</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 'bold' }} color="success.main">{importResult.successfulRecords}</Typography>
-             </Box>
-             <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 1, border: '1px solid #e0e0e0', textAlign: 'center', minWidth: 100 }}>
-                <Typography variant="caption" color="text.secondary">Duplicates Skipped</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 'bold' }} color="warning.main">{importResult.duplicateRecords}</Typography>
-             </Box>
-             <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 1, border: '1px solid #e0e0e0', textAlign: 'center', minWidth: 100 }}>
-                <Typography variant="caption" color="text.secondary">Failed Records</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 'bold' }} color="error.main">{importResult.failedRecords}</Typography>
-             </Box>
-           </Box>
-
-           {(importResult.failedRecords > 0 || importResult.duplicateRecords > 0) && (
-             <Button variant="outlined" color="error" startIcon={<DownloadIcon />}>
-               Download Failed Records
-             </Button>
-           )}
-         </Box>
-      )}
+      <Box sx={{ display: 'flex', gap: 2 }}>
+        {(data.failedRecords > 0 || data.status === 'Completed with Errors') && (
+          <Button 
+            variant="contained" 
+            color="primary"
+            startIcon={<DownloadIcon />}
+            onClick={() => importApi.downloadErrorCsv(data.id)}
+          >
+            Download Result CSV
+          </Button>
+        )}
+        <Button variant="outlined" onClick={onReset}>
+          Start New Import
+        </Button>
+      </Box>
     </Paper>
   );
-}
+};

@@ -1,152 +1,211 @@
-import { useState } from 'react';
-import {
-  Box, Typography, Grid, Button, Stepper, Step, StepLabel
-} from '@mui/material';
-import { CloudUpload as CloudUploadIcon } from '@mui/icons-material';
-import { useQuery } from '@tanstack/react-query';
-import { importApi, DataImport, ImportPreviewResponse, ImportValidationResponse } from '../api/importApi';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Grid, Paper, List, ListItem, ListItemText, ListItemIcon } from '@mui/material';
+import HistoryIcon from '@mui/icons-material/History';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 
-import ImportConfiguration from '../components/import/ImportConfiguration';
-import CSVPreview from '../components/import/CSVPreview';
-import ColumnValidation from '../components/import/ColumnValidation';
-import ValidationSummary from '../components/import/ValidationSummary';
-import ImportResult from '../components/import/ImportResult';
-import ImportHistory from '../components/import/ImportHistory';
+import { ImportStats } from '../components/import/ImportStats';
+import { ImportConfiguration } from '../components/import/ImportConfiguration';
+import { CSVPreview } from '../components/import/CSVPreview';
+import { ValidationSummary } from '../components/import/ValidationSummary';
+import { ProcessingProgress } from '../components/import/ProcessingProgress';
+import { ImportResult } from '../components/import/ImportResult';
+import { ImportHistory } from '../components/import/ImportHistory';
+import { ImportDetailModal } from '../components/import/ImportDetailModal';
 
-const steps = ['Select & Upload', 'Preview & Validate', 'Import', 'Result', 'History'];
+import { importApi, DataImport, DetailedValidationResponse, ImportPreviewResponse } from '../api/importApi';
 
-export default function DataImportPage() {
-  const [importType, setImportType] = useState('Products');
-  const [file, setFile] = useState<File | null>(null);
-  const [activeStep, setActiveStep] = useState(0);
+export const DataImportPage: React.FC = () => {
+  const [stats, setStats] = useState<any>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  
+  const [history, setHistory] = useState<DataImport[]>([]);
+  
+  // Wizard state
+  const [step, setStep] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(false);
   
   const [previewData, setPreviewData] = useState<ImportPreviewResponse | null>(null);
-  const [validationData, setValidationData] = useState<ImportValidationResponse | null>(null);
-  const [importResult, setImportResult] = useState<DataImport | null>(null);
-  
-  const [isUploading, setIsUploading] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
+  const [validationData, setValidationData] = useState<DetailedValidationResponse | null>(null);
+  const [activeImport, setActiveImport] = useState<DataImport | null>(null);
+  const [modalImportId, setModalImportId] = useState<number | null>(null);
 
-  const { data: historyData, refetch: refetchHistory } = useQuery({
-    queryKey: ['importHistory'],
-    queryFn: importApi.getHistory,
-  });
-
-  const handleValidateFile = async () => {
-    if (!file) return;
-    setIsUploading(true);
+  const fetchDashboardData = async () => {
     try {
-      const preview = await importApi.uploadFile(file, importType);
-      setPreviewData(preview);
-      setActiveStep(1);
-      
-      const validation = await importApi.validateImport(preview.importId);
-      setValidationData(validation);
-      
+      const [statsRes, historyRes] = await Promise.all([
+        importApi.getStats(),
+        importApi.getHistory(1, 5)
+      ]);
+      setStats(statsRes);
+      setHistory(historyRes);
     } catch (error) {
-      console.error("Upload/Validation failed:", error);
-      alert("Validation failed. Please check the file and try again.");
+      console.error("Error fetching dashboard data", error);
     } finally {
-      setIsUploading(false);
+      setStatsLoading(false);
     }
   };
 
-  const handleImportData = async () => {
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const handleValidate = async (file: File, type: string) => {
+    setIsLoading(true);
+    try {
+      // 1. Upload
+      const preview = await importApi.uploadFile(file, type);
+      setPreviewData(preview);
+      
+      // 2. Validate
+      const validation = await importApi.validateImport(preview.importId);
+      setValidationData({
+        ...validation,
+        previewData: preview.previewData
+      });
+      setStep(1);
+    } catch (error) {
+      console.error("Upload/Validate failed", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleConfirmImport = async () => {
     if (!previewData?.importId) return;
-    setIsImporting(true);
-    setActiveStep(2);
+    setIsLoading(true);
     try {
       const result = await importApi.processImport(previewData.importId);
-      setImportResult(result);
-      setActiveStep(3);
-      refetchHistory();
+      setActiveImport(result);
+      setStep(2);
+      fetchDashboardData();
     } catch (error) {
-      console.error("Import failed:", error);
-      alert("Import process failed.");
+      console.error("Processing failed", error);
     } finally {
-      setIsImporting(false);
+      setIsLoading(false);
     }
+  };
+
+  const handleCancelValidation = () => {
+    setStep(0);
+    setPreviewData(null);
+    setValidationData(null);
+  };
+
+  const handleProcessingComplete = (data: DataImport) => {
+    setActiveImport(data);
+    setStep(3);
+    fetchDashboardData();
+  };
+
+  const handleReset = () => {
+    setStep(0);
+    setPreviewData(null);
+    setValidationData(null);
+    setActiveImport(null);
   };
 
   return (
-    <Box sx={{ p: 3, bgcolor: '#f5f7fa', minHeight: '100vh' }}>
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>Data Import & Integration Management</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Import Products, Customers and Sales Transactions via CSV
-          </Typography>
-        </Box>
+    <Box sx={{ bgcolor: '#f5f7fa', minHeight: '100vh', p: 3 }}>
+      {/* Page Header */}
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>Data Import &amp; Bulk Processing</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Upload, validate and import your data with complete tracking and error handling
+        </Typography>
       </Box>
 
+      {/* Stats Cards */}
       <Box sx={{ mb: 4 }}>
-        <Stepper activeStep={activeStep} alternativeLabel>
-          {steps.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
+        <ImportStats stats={stats} isLoading={statsLoading} />
       </Box>
 
       <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 4 }}>
-          <ImportConfiguration
-            importType={importType}
-            setImportType={setImportType}
-            file={file}
-            setFile={setFile}
-            handleValidateFile={handleValidateFile}
-            isUploading={isUploading}
-          />
-        </Grid>
-
+        {/* Left Column - Main Wizard */}
         <Grid size={{ xs: 12, md: 8 }}>
-          {activeStep >= 1 && previewData && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, height: '100%' }}>
-              
-              <Grid container spacing={3}>
-                <Grid size={{ xs: 12, md: 8 }}>
-                  <CSVPreview previewData={previewData} />
-                </Grid>
-                <Grid size={{ xs: 12, md: 4 }}>
-                  <ColumnValidation importType={importType} />
-                </Grid>
-              </Grid>
-
-              {validationData && (
-                <ValidationSummary validationData={validationData} />
-              )}
-
-              {validationData && activeStep === 1 && (
-                <Button 
-                  variant="contained" 
-                  color="primary" 
-                  size="large" 
-                  fullWidth 
-                  startIcon={<CloudUploadIcon />}
-                  sx={{ py: 2, fontWeight: 'bold', fontSize: '1.1rem' }}
-                  onClick={handleImportData}
-                  disabled={isImporting}
-                >
-                  {isImporting ? 'Importing Data...' : 'Import Data'}
-                </Button>
-              )}
+          {step === 0 && (
+            <Box>
+              <ImportConfiguration onValidate={handleValidate} isLoading={isLoading} />
             </Box>
           )}
+
+          {step === 1 && validationData && previewData && (
+            <Box>
+              <ValidationSummary
+                validationResult={validationData}
+                onConfirm={handleConfirmImport}
+                onCancel={handleCancelValidation}
+                isLoading={isLoading}
+              />
+              <CSVPreview
+                columns={previewData.columns}
+                previewData={previewData.previewData}
+              />
+            </Box>
+          )}
+
+          {step === 2 && activeImport && (
+            <ProcessingProgress
+              importId={activeImport.id}
+              initialData={activeImport}
+              onComplete={handleProcessingComplete}
+              onCancel={handleReset}
+            />
+          )}
+
+          {step === 3 && activeImport && (
+            <ImportResult
+              data={activeImport}
+              onReset={handleReset}
+            />
+          )}
+        </Grid>
+
+        {/* Right Column - Sidebar */}
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Box sx={{ mb: 3 }}>
+            <ImportHistory history={history} onView={(id) => setModalImportId(id)} />
+          </Box>
+
+          <Paper sx={{ p: 2, mb: 3, borderRadius: 2 }}>
+            <Typography variant="h6" gutterBottom>Quick Actions</Typography>
+            <List dense>
+              <ListItem>
+                <ListItemIcon><HistoryIcon color="primary" /></ListItemIcon>
+                <ListItemText primary="View Import History" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon><AssessmentIcon color="error" /></ListItemIcon>
+                <ListItemText primary="Download Error Report" secondary="Last failed import" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon><ScheduleIcon color="primary" /></ListItemIcon>
+                <ListItemText primary="Manage Scheduled Imports" />
+              </ListItem>
+            </List>
+          </Paper>
+
+          <Paper sx={{ p: 2, borderRadius: 2 }}>
+            <Typography variant="h6" gutterBottom>Recent Notifications</Typography>
+            <List dense>
+              <ListItem>
+                <ListItemIcon><NotificationsIcon fontSize="small" color="primary" /></ListItemIcon>
+                <ListItemText
+                  primary="Import completed"
+                  secondary="Products import completed successfully."
+                />
+              </ListItem>
+            </List>
+          </Paper>
         </Grid>
       </Grid>
 
-      <ImportResult 
-        isImporting={isImporting} 
-        importResult={importResult} 
+      <ImportDetailModal
+        importId={modalImportId}
+        onClose={() => setModalImportId(null)}
       />
-
-      <ImportHistory 
-        historyData={historyData} 
-        refetchHistory={refetchHistory} 
-      />
-      
     </Box>
   );
-}
+};
+
+export default DataImportPage;

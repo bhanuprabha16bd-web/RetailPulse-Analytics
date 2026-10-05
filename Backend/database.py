@@ -351,6 +351,23 @@ def migrate_data_quality_schema():
     if "issue_status_history" not in inspector.get_table_names():
         models.IssueStatusHistory.__table__.create(engine)
 
+def migrate_import_schema():
+    """Add new columns to data_imports table."""
+    inspector = inspect(engine)
+    if "data_imports" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("data_imports")}
+    additions = {
+        "skipped_records": "INTEGER DEFAULT 0",
+        "processing_progress": "INTEGER DEFAULT 0",
+        "processing_speed": "INTEGER DEFAULT 0",
+    }
+    with engine.begin() as connection:
+        for name, definition in additions.items():
+            if name not in columns:
+                connection.execute(text(f"ALTER TABLE data_imports ADD COLUMN {name} {definition}"))
+
 def get_db():
     db = SessionLocal()
     try:

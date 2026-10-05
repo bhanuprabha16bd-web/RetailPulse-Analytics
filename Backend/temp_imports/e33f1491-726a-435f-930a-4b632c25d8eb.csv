@@ -1,0 +1,21 @@
+Invoice Number,Product SKU,Quantity,Customer Email,Unit Price,Payment Method
+INV-2025-001,LP001,2,arjun.sharma@email.com,80000,Card
+INV-2025-002,MN001,1,priya.patel@gmail.com,25000,UPI
+INV-2025-003,KB001,3,ravi.kumar@outlook.com,3500,Cash
+INV-2025-004,MS001,2,sunita.verma@yahoo.com,1200,UPI
+INV-2025-005,HP001,1,mohammed.ansari@business.com,12000,Card
+INV-2025-006,WC001,2,deepika.nair@email.com,4500,Cash
+INV-2025-007,SP001,1,vikram.singh@gmail.com,6000,Card
+INV-2025-008,SS001,3,anita.gupta@outlook.com,7500,Bank Transfer
+INV-2025-009,HB001,4,karan.mehta@email.com,2200,UPI
+INV-2025-010,GT001,1,lakshmi.iyer@gmail.com,9000,Card
+INV-2025-011,LP001,1,rajesh.gupta@business.com,80000,Bank Transfer
+INV-2025-012,DL001,5,meena.reddy@yahoo.com,1800,Cash
+INV-2025-013,KB001,2,aditya.chopra@email.com,3500,Card
+INV-2025-014,CP001,3,nisha.sharma@gmail.com,1500,UPI
+INV-2025-015,CM001,1,sachin.tiwari@outlook.com,5500,Card
+INV-2025-016,MN001,2,pooja.kapoor@email.com,25000,Bank Transfer
+INV-2025-017,PS001,6,rohit.jain@gmail.com,800,Cash
+INV-2025-018,WR001,4,kavitha.menon@business.com,900,UPI
+INV-2025-019,MS002,2,amit.srivastava@email.com,2500,Card
+INV-2025-020,FC001,1,rashmi.patel@yahoo.com,6500,Cash

@@ -54,16 +54,20 @@ class CustomerSegmentEnum(str, enum.Enum):
     vip = "VIP Customer"
 
 class DataImportStatusEnum(str, enum.Enum):
+    uploaded = "Uploaded"
+    validating = "Validating"
     pending = "Pending"
     processing = "Processing"
     completed = "Completed"
     completed_with_errors = "Completed with Errors"
     failed = "Failed"
+    cancelled = "Cancelled"
 
 class DataImportTypeEnum(str, enum.Enum):
     products = "Products"
     customers = "Customers"
     sales = "Sales"
+    inventory = "Inventory"
 
 class ReportFormatEnum(str, enum.Enum):
     csv = "CSV"
@@ -384,6 +388,9 @@ class DataImport(Base):
     successful_records = Column(Integer, default=0)
     failed_records = Column(Integer, default=0)
     duplicate_records = Column(Integer, default=0)
+    skipped_records = Column(Integer, default=0)
+    processing_progress = Column(Integer, default=0)
+    processing_speed = Column(Integer, default=0)
     status = Column(Enum(DataImportStatusEnum), default=DataImportStatusEnum.pending)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)
