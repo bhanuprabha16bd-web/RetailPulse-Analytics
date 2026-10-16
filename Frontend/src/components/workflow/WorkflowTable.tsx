@@ -19,7 +19,7 @@ interface WorkflowTableProps {
   rowsPerPage: number;
   onPageChange: (event: unknown, newPage: number) => void;
   onRowsPerPageChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onViewRequest: (id: number) => void;
+  onViewRequest: (id: string) => void;
 }
 
 const getTypeIcon = (type: string) => {
