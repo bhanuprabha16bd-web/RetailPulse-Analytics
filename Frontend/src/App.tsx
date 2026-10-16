@@ -28,6 +28,7 @@ import Notifications from './pages/Notifications';
 import Reports from './pages/Reports';
 import DataQuality from './pages/DataQuality';
 import Workflows from './pages/Workflows';
+import SystemHealth from './pages/SystemHealth';
 
 const queryClient = new QueryClient();
 
@@ -64,6 +65,7 @@ function App() {
                   <Route path="/audit-logs" element={<AuditLogs />} />
                   <Route path="/data-quality" element={<DataQuality />} />
                   <Route path="/workflows" element={<Workflows />} />
+                  <Route path="/system-health" element={<SystemHealth />} />
                   <Route path="/settings" element={<div>Settings Page Placeholder</div>} />
                 </Route>
               

@@ -12,7 +12,6 @@ import {
     Inventory as InventoryIcon,
     BarChart as AnalyticsIcon,
     Settings as SettingsIcon,
-    AccountCircle,
     History as HistoryIcon,
     Category as CategoryIcon,
     Receipt as ReceiptIcon,
@@ -22,7 +21,8 @@ import {
     NotificationsActive as NotificationsActiveIcon,
     Description as ReportsIcon,
     VerifiedUser as VerifiedUserIcon,
-    Approval as ApprovalIcon
+    Approval as ApprovalIcon,
+    MonitorHeart as MonitorHeartIcon,
 } from '@mui/icons-material';
 import { Badge } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
@@ -47,6 +47,7 @@ const menuItems = [
     { text: 'Notifications', icon: <NotificationsIcon />, path: '/notifications' },
     { text: 'Audit Logs', icon: <HistoryIcon />, path: '/audit-logs', auditOnly: true },
     { text: 'Data Quality', icon: <VerifiedUserIcon />, path: '/data-quality', adminOnly: true },
+    { text: 'System Health', icon: <MonitorHeartIcon />, path: '/system-health', adminOnly: true },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
 ];
 

@@ -377,6 +377,36 @@ def migrate_workflow_schema():
     if "workflow_requests" not in existing_tables:
         return
 
+def migrate_system_health_schema():
+    """Create system health monitoring tables if they don't exist, and backfill jobs from imports."""
+    import models
+    inspector = inspect(engine)
+    existing_tables = inspector.get_table_names()
+
+    # Create tables in the correct order (Incident before SystemError due to FK)
+    for model_cls, table_name in [
+        (models.SystemHealthCheck, "system_health_checks"),
+        (models.ApiMetric, "api_metrics"),
+        (models.BackgroundJob, "background_jobs"),
+        (models.Incident, "incidents"),
+        (models.SystemError, "system_errors"),
+        (models.IncidentTimeline, "incident_timeline"),
+        (models.MonitoringThreshold, "monitoring_thresholds"),
+    ]:
+        if table_name not in existing_tables:
+            model_cls.__table__.create(engine)
+
+    # Backfill BackgroundJob records from existing DataImport and ReconciliationRun records
+    try:
+        from services.health_service import sync_jobs_from_imports
+        db = SessionLocal()
+        try:
+            sync_jobs_from_imports(db)
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Warning: Could not backfill background jobs: {e}")
+
 def get_db():
     db = SessionLocal()
     try:

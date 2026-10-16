@@ -636,3 +636,171 @@ class WorkflowConfig(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     company = relationship("Company")
+
+
+# ─────────────────── System Health Monitoring ───────────────────
+
+class SystemHealthStatusEnum(str, enum.Enum):
+    healthy = "Healthy"
+    degraded = "Degraded"
+    unavailable = "Unavailable"
+
+class JobStatusEnum(str, enum.Enum):
+    pending = "Pending"
+    running = "Running"
+    completed = "Completed"
+    failed = "Failed"
+    cancelled = "Cancelled"
+
+class JobTypeEnum(str, enum.Enum):
+    data_import = "Data Import"
+    scheduled_report = "Scheduled Report"
+    reconciliation = "Reconciliation"
+    health_check = "Health Check"
+    system_task = "System Task"
+
+class ErrorCategoryEnum(str, enum.Enum):
+    api_error = "API Error"
+    db_error = "Database Error"
+    job_failure = "Job Failure"
+    external_api = "External API"
+    auth_error = "Auth Error"
+    validation_error = "Validation Error"
+
+class ErrorSeverityEnum(str, enum.Enum):
+    critical = "Critical"
+    high = "High"
+    medium = "Medium"
+    low = "Low"
+
+class ErrorStatusEnum(str, enum.Enum):
+    open = "Open"
+    investigating = "Investigating"
+    resolved = "Resolved"
+
+class IncidentStatusEnum(str, enum.Enum):
+    open = "Open"
+    investigating = "Investigating"
+    resolved = "Resolved"
+
+class SystemHealthCheck(Base):
+    __tablename__ = "system_health_checks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    component = Column(String, nullable=False, index=True)  # e.g. 'Application API', 'Database', 'Background Jobs'
+    status = Column(Enum(SystemHealthStatusEnum), nullable=False)
+    response_time_ms = Column(Integer, nullable=True)
+    error_message = Column(String, nullable=True)
+    checked_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+class ApiMetric(Base):
+    __tablename__ = "api_metrics"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    endpoint = Column(String, nullable=False, index=True)
+    method = Column(String, nullable=False)
+    status_code = Column(Integer, nullable=False)
+    response_time_ms = Column(Integer, nullable=False)
+    is_error = Column(Boolean, default=False, nullable=False)
+    error_category = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+class BackgroundJob(Base):
+    __tablename__ = "background_jobs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    job_id = Column(String, unique=True, nullable=False, index=True)
+    job_type = Column(Enum(JobTypeEnum), nullable=False)
+    triggered_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    started_at = Column(DateTime(timezone=True), server_default=func.now())
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    duration_ms = Column(Integer, nullable=True)
+    status = Column(Enum(JobStatusEnum), default=JobStatusEnum.pending, nullable=False, index=True)
+    retry_count = Column(Integer, default=0, nullable=False)
+    failure_reason = Column(String, nullable=True)
+    metadata_json = Column(String, nullable=True)  # JSON: extra info
+    source_record_type = Column(String, nullable=True)  # 'DataImport', 'ReconciliationRun', 'ScheduledReport'
+    source_record_id = Column(Integer, nullable=True)
+
+    company = relationship("Company")
+    trigger_user = relationship("User", foreign_keys=[triggered_by])
+
+class Incident(Base):
+    __tablename__ = "incidents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    incident_id = Column(String, nullable=False, unique=True, index=True)  # e.g. INC-001
+    title = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    severity = Column(Enum(ErrorSeverityEnum), nullable=False)
+    status = Column(Enum(IncidentStatusEnum), default=IncidentStatusEnum.open, nullable=False)
+    affected_components = Column(String, nullable=True)  # JSON list
+    detected_at = Column(DateTime(timezone=True), server_default=func.now())
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+    resolved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    resolution_notes = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    company = relationship("Company")
+    resolver = relationship("User", foreign_keys=[resolved_by])
+    timeline = relationship("IncidentTimeline", back_populates="incident", cascade="all, delete-orphan", order_by="IncidentTimeline.created_at")
+    errors = relationship("SystemError", back_populates="incident", foreign_keys="[SystemError.incident_id]")
+
+class SystemError(Base):
+    __tablename__ = "system_errors"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    error_id = Column(String, nullable=False, index=True)  # e.g. ERR-1001
+    error_key = Column(String, nullable=False, index=True)  # Dedup key: category+component+endpoint
+    category = Column(Enum(ErrorCategoryEnum), nullable=False)
+    component = Column(String, nullable=False)
+    endpoint_or_job = Column(String, nullable=True)
+    severity = Column(Enum(ErrorSeverityEnum), nullable=False)
+    occurrence_count = Column(Integer, default=1, nullable=False)
+    first_seen_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_seen_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    status = Column(Enum(ErrorStatusEnum), default=ErrorStatusEnum.open, nullable=False)
+    resolution_notes = Column(String, nullable=True)
+    incident_id = Column(Integer, ForeignKey("incidents.id"), nullable=True)
+    sample_message = Column(String, nullable=True)  # Sample error message (sanitized)
+    resolved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+
+    company = relationship("Company")
+    incident = relationship("Incident", foreign_keys=[incident_id], back_populates="errors")
+    resolver = relationship("User", foreign_keys=[resolved_by])
+
+class IncidentTimeline(Base):
+    __tablename__ = "incident_timeline"
+
+    id = Column(Integer, primary_key=True, index=True)
+    incident_id = Column(Integer, ForeignKey("incidents.id"), nullable=False, index=True)
+    action = Column(String, nullable=False)
+    status_from = Column(String, nullable=True)
+    status_to = Column(String, nullable=True)
+    performed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    notes = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    incident = relationship("Incident", back_populates="timeline")
+    user = relationship("User", foreign_keys=[performed_by])
+
+class MonitoringThreshold(Base):
+    __tablename__ = "monitoring_thresholds"
+    __table_args__ = (
+        UniqueConstraint("company_id", "threshold_key", name="uq_thresholds_company_key"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    threshold_key = Column(String, nullable=False)  # e.g. 'api_error_rate', 'response_time_ms', 'job_failure_count'
+    threshold_value = Column(Float, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    company = relationship("Company")

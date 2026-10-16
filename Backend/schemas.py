@@ -88,259 +88,9 @@ class AuditLogOut(BaseModel):
     company: Optional[AuditCompanyOut] = None
     user: Optional[AuditUserOut] = None
 
-class StoreBase(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
-    name: str
-    location: str
-    is_active: bool = True
-
-class StoreCreate(StoreBase):
-    pass
-
-class StoreUpdate(StoreBase):
-    pass
-
-class StoreOut(StoreBase):
-    id: int
-    company_id: int
-    created_at: datetime
-
-class ProductBase(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
-
-    sku: str = Field(min_length=1, max_length=80)
-    name: str = Field(min_length=1, max_length=180)
-    category_id: int
-    brand: Optional[str] = Field(default=None, max_length=120)
-    description: Optional[str] = Field(default=None, max_length=1000)
-    unit_price: float = Field(ge=0)
-    cost_price: Optional[float] = Field(default=None, ge=0)
-    stock_quantity: int = Field(default=0, ge=0)
-    reserved_stock: int = Field(default=0, ge=0)
-    reorder_level: int = Field(default=10, ge=0)
-    unit_of_measure: str = Field(default="Unit", min_length=1, max_length=50)
-    status: bool = True
-
-class ProductCreate(ProductBase):
-    pass
-
-class ProductUpdate(ProductBase):
-    pass
-
-class ProductOut(ProductBase):
-    id: int
-    company_id: int
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-
-class CategoryBase(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
-    
-    name: str = Field(min_length=1, max_length=120)
-    description: Optional[str] = Field(default=None, max_length=500)
-    status: bool = True
-
-class CategoryCreate(CategoryBase):
-    pass
-
-class CategoryUpdate(CategoryBase):
-    pass
-
-class CategoryOut(CategoryBase):
-    id: int
-    company_id: int
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-    product_count: int = 0
-
-class SaleItemBase(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
-
-    product_id: int
-    quantity: int = Field(default=1, gt=0)
-    unit_price: float = Field(ge=0)
-    discount: float = Field(default=0.0, ge=0)
-    tax: float = Field(default=0.0, ge=0)
-
-class SaleItemCreate(SaleItemBase):
-    pass
-
-class SaleItemOut(SaleItemBase):
-    id: int
-    sale_id: int
-    category_id: int
-    total: float
-    product: Optional[ProductOut] = None
-    category: Optional[CategoryOut] = None
-
-class SaleBase(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
-
-    store_id: int
-    customer_id: Optional[int] = None
-    customer_name: Optional[str] = None
-    sales_channel: SalesChannelEnum = SalesChannelEnum.retail_store
-    payment_method: PaymentMethodEnum = PaymentMethodEnum.cash
-
-class SaleCreate(SaleBase):
-    items: list[SaleItemCreate]
-
-class SaleOut(SaleBase):
-    id: int
-    company_id: int
-    invoice_number: str
-    total_amount: float
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-    store: Optional[StoreOut] = None
-    customer: Optional['CustomerOut'] = None
-    items: list[SaleItemOut] = []
-
-class NotificationOut(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
-
-    id: int
-    company_id: int
-    user_id: Optional[int] = None
-    type: NotificationTypeEnum
-    title: str
-    message: str
-    priority: NotificationPriorityEnum
-    resource_type: Optional[str] = None
-    resource_id: Optional[str] = None
-    is_read: bool
-    created_at: datetime
-    read_at: Optional[datetime] = None
-
-class PaginatedNotificationsOut(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
-    
-    notifications: list[NotificationOut]
-    total: int
-    page: int
-    limit: int
-
-class ScheduledReportBase(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
-    report_type: str = Field(min_length=1)
-    filters: dict = Field(default_factory=dict)
-    frequency: ReportFrequencyEnum
-    execution_time: str = Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
-    recipients: list[EmailStr] = Field(min_length=1)
-    format: ReportFormatEnum = ReportFormatEnum.csv
-    is_active: bool = True
-
-class ScheduledReportCreate(ScheduledReportBase):
-    pass
-
-class ScheduledReportOut(ScheduledReportBase):
-    id: int
-    company_id: int
-    created_by: int
-    last_run_at: Optional[datetime] = None
-    last_status: Optional[str] = None
-    last_error: Optional[str] = None
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-
-class ReportHistoryOut(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
-    id: int
-    report_type: str
-    generated_by: int
-    filters: dict
-    format: ReportFormatEnum
-    status: str
-    error_message: Optional[str] = None
-    created_at: datetime
-
-from models import StockMovementEnum
-
-class StockMovementBase(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
-    product_id: int
-    movement_type: StockMovementEnum
-    previous_quantity: int
-    updated_quantity: int
-    quantity_changed: int
-    reason: Optional[str] = None
-    remarks: Optional[str] = None
-    reference_id: Optional[str] = None
-
-class StockMovementOut(StockMovementBase):
-    id: int
-    company_id: int
-    user_id: int
-    timestamp: datetime
-    product: Optional[ProductOut] = None
-    user: Optional[UserOut] = None
-
-class StockAdjustmentCreate(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
-    product_id: int
-class UserOut(UserBase):
-    id: int
-    company_id: int
-    last_login: Optional[datetime] = None
-    created_at: datetime
-    company: Optional[CompanyOut] = None
-
-class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str
-
-class ChangePasswordRequest(BaseModel):
-    current_password: str
-    new_password: str = Field(min_length=8)
-    confirm_password: str = Field(min_length=8)
-
-    @model_validator(mode="after")
-    def passwords_match(self):
-        if self.new_password != self.confirm_password:
-            raise ValueError("Passwords do not match")
-        return self
-
-class Token(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-
-class TokenData(BaseModel):
-    user_id: int
-    company_id: int
-
-class AuditCompanyOut(BaseModel):
-    id: int
-    name: str
-
-class AuditUserOut(BaseModel):
-    id: int
-    name: str
-    email: EmailStr
-
-class AuditLogOut(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
-    
-    id: int
-    company_id: Optional[int] = None
-    user_id: Optional[int] = None
-    action: str
-    resource_type: Optional[str] = None
-    resource_id: Optional[str] = None
-    description: Optional[str] = None
-    status: str
-    before_values: Optional[str] = None
-    after_values: Optional[str] = None
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
-    created_at: datetime
-    
-    company: Optional[AuditCompanyOut] = None
-    user: Optional[AuditUserOut] = None
-
 class PaginatedAuditLogsOut(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
-    
+
     logs: list[AuditLogOut]
     total: int
     page: int
@@ -439,8 +189,6 @@ class SaleBase(BaseModel):
     customer_name: Optional[str] = None
     sales_channel: SalesChannelEnum = SalesChannelEnum.retail_store
     payment_method: PaymentMethodEnum = PaymentMethodEnum.cash
-    payment_status: PaymentStatusEnum = PaymentStatusEnum.paid
-    notes: Optional[str] = None
 
 class SaleCreate(SaleBase):
     items: list[SaleItemCreate]
@@ -484,6 +232,69 @@ class PaginatedNotificationsOut(BaseModel):
     total: int
     page: int
     limit: int
+
+class ScheduledReportBase(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    report_type: str = Field(min_length=1)
+    filters: dict = Field(default_factory=dict)
+    frequency: ReportFrequencyEnum
+    execution_time: str = Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    recipients: list[EmailStr] = Field(min_length=1)
+    format: ReportFormatEnum = ReportFormatEnum.csv
+    is_active: bool = True
+
+class ScheduledReportCreate(ScheduledReportBase):
+    pass
+
+class ScheduledReportOut(ScheduledReportBase):
+    id: int
+    company_id: int
+    created_by: int
+    last_run_at: Optional[datetime] = None
+    last_status: Optional[str] = None
+    last_error: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+class ReportHistoryOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
+    id: int
+    report_type: str
+    generated_by: int
+    filters: dict
+    format: ReportFormatEnum
+    status: str
+    error_message: Optional[str] = None
+    created_at: datetime
+
+from models import StockMovementEnum
+
+class StockMovementBase(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
+    product_id: int
+    movement_type: StockMovementEnum
+    previous_quantity: int
+    updated_quantity: int
+    quantity_changed: int
+    reason: Optional[str] = None
+    remarks: Optional[str] = None
+    reference_id: Optional[str] = None
+
+class StockMovementOut(StockMovementBase):
+    id: int
+    company_id: int
+    user_id: int
+    timestamp: datetime
+    product: Optional[ProductOut] = None
+    user: Optional[UserOut] = None
+
+class StockAdjustmentCreate(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    product_id: int
+    adjustment_type: str
+    quantity: int
+    reason: str
+    remarks: Optional[str] = None
 
 from models import StockMovementEnum
 
@@ -935,3 +746,135 @@ class WorkflowStatsOut(BaseModel):
     cancelled: int
     pending_growth: Optional[float] = None
     total_growth: Optional[float] = None
+
+
+# ─────────────────── System Health Monitoring Schemas ───────────────────
+from models import SystemHealthStatusEnum, JobStatusEnum, JobTypeEnum, ErrorCategoryEnum, ErrorSeverityEnum, ErrorStatusEnum, IncidentStatusEnum
+
+class HealthComponentOut(BaseModel):
+    component: str
+    status: str
+    response_time_ms: Optional[int] = None
+    error_message: Optional[str] = None
+    checked_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+class SystemOverviewOut(BaseModel):
+    overall_status: str
+    api_availability_pct: float
+    avg_response_time_ms: float
+    failed_api_requests: int
+    total_api_requests: int
+    jobs_completed: int
+    jobs_failed: int
+    jobs_active: int
+    jobs_pending: int
+    open_errors: int
+    open_incidents: int
+    last_health_check: Optional[datetime] = None
+    components: list
+    recent_alerts: list
+
+class ApiMetricOut(BaseModel):
+    id: int
+    endpoint: str
+    method: str
+    status_code: int
+    response_time_ms: int
+    is_error: bool
+    error_category: Optional[str] = None
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class PaginatedApiMetricsOut(BaseModel):
+    metrics: list[ApiMetricOut]
+    total: int
+    page: int
+    limit: int
+
+class BackgroundJobOut(BaseModel):
+    id: int
+    job_id: str
+    job_type: str
+    triggered_by_name: Optional[str] = None
+    started_at: datetime
+    completed_at: Optional[datetime] = None
+    duration_ms: Optional[int] = None
+    status: str
+    retry_count: int
+    failure_reason: Optional[str] = None
+    source_record_type: Optional[str] = None
+    source_record_id: Optional[int] = None
+    model_config = ConfigDict(from_attributes=True)
+
+class PaginatedJobsOut(BaseModel):
+    jobs: list[BackgroundJobOut]
+    total: int
+    page: int
+    limit: int
+
+class SystemErrorOut(BaseModel):
+    id: int
+    error_id: str
+    category: str
+    component: str
+    endpoint_or_job: Optional[str] = None
+    severity: str
+    occurrence_count: int
+    first_seen_at: datetime
+    last_seen_at: datetime
+    status: str
+    resolution_notes: Optional[str] = None
+    sample_message: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+class PaginatedErrorsOut(BaseModel):
+    errors: list[SystemErrorOut]
+    total: int
+    page: int
+    limit: int
+
+class IncidentTimelineOut(BaseModel):
+    id: int
+    action: str
+    status_from: Optional[str] = None
+    status_to: Optional[str] = None
+    performed_by_name: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class IncidentOut(BaseModel):
+    id: int
+    incident_id: str
+    title: str
+    description: Optional[str] = None
+    severity: str
+    status: str
+    affected_components: Optional[str] = None
+    detected_at: datetime
+    resolved_at: Optional[datetime] = None
+    resolution_notes: Optional[str] = None
+    timeline: list[IncidentTimelineOut] = []
+    model_config = ConfigDict(from_attributes=True)
+
+class PaginatedIncidentsOut(BaseModel):
+    incidents: list[IncidentOut]
+    total: int
+    page: int
+    limit: int
+
+class IncidentUpdateRequest(BaseModel):
+    status: Optional[str] = None
+    notes: Optional[str] = None
+    resolution_notes: Optional[str] = None
+
+class MonitoringThresholdOut(BaseModel):
+    id: int
+    threshold_key: str
+    threshold_value: float
+    is_active: bool
+    model_config = ConfigDict(from_attributes=True)
+
+class ThresholdUpdateRequest(BaseModel):
+    thresholds: dict  # {key: value}

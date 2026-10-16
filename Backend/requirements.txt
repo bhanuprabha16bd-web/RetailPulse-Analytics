@@ -7,3 +7,6 @@ pyjwt
 pydantic[email]
 python-dotenv
 alembic
+reportlab
+python-multipart
+psutil
