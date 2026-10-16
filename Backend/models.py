@@ -546,3 +546,93 @@ class IssueStatusHistory(Base):
 
     issue = relationship("DataQualityIssue")
     user = relationship("User")
+
+# ─────────────────── Workflow & Approval ───────────────────
+
+class WorkflowRequestTypeEnum(str, enum.Enum):
+    stock_adjustment = "Stock Adjustment"
+    product_deactivation = "Product Deactivation"
+    product_price_change = "Product Price Change"
+    customer_info_change = "Customer Information Change"
+    inventory_import_approval = "Inventory Import Approval"
+
+class WorkflowPriorityEnum(str, enum.Enum):
+    low = "Low"
+    medium = "Medium"
+    high = "High"
+    critical = "Critical"
+
+class WorkflowStatusEnum(str, enum.Enum):
+    draft = "Draft"
+    submitted = "Submitted"
+    pending_approval = "Pending Approval"
+    approved = "Approved"
+    rejected = "Rejected"
+    cancelled = "Cancelled"
+
+class WorkflowRequest(Base):
+    __tablename__ = "workflow_requests"
+    id = Column(Integer, primary_key=True, index=True)
+    request_id = Column(String, unique=True, index=True, nullable=False)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    request_type = Column(Enum(WorkflowRequestTypeEnum), nullable=False)
+    requested_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    related_record_type = Column(String, nullable=True)
+    related_record_id = Column(Integer, nullable=True)
+    related_record_label = Column(String, nullable=True)
+    current_values = Column(String, nullable=True)
+    requested_values = Column(String, nullable=True)
+    reason = Column(String, nullable=False)
+    priority = Column(Enum(WorkflowPriorityEnum), default=WorkflowPriorityEnum.medium)
+    status = Column(Enum(WorkflowStatusEnum), default=WorkflowStatusEnum.pending_approval, nullable=False)
+    reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    rejection_reason = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    company = relationship("Company")
+    requester = relationship("User", foreign_keys=[requested_by])
+    reviewer = relationship("User", foreign_keys=[reviewed_by])
+    history = relationship("WorkflowHistory", back_populates="request", cascade="all, delete-orphan", order_by="WorkflowHistory.created_at")
+    comments = relationship("WorkflowComment", back_populates="request", cascade="all, delete-orphan", order_by="WorkflowComment.created_at")
+
+class WorkflowHistory(Base):
+    __tablename__ = "workflow_history"
+    id = Column(Integer, primary_key=True, index=True)
+    request_id = Column(Integer, ForeignKey("workflow_requests.id"), nullable=False, index=True)
+    action = Column(String, nullable=False)
+    from_status = Column(String, nullable=True)
+    to_status = Column(String, nullable=True)
+    performed_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    note = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    request = relationship("WorkflowRequest", back_populates="history")
+    user = relationship("User")
+
+class WorkflowComment(Base):
+    __tablename__ = "workflow_comments"
+    id = Column(Integer, primary_key=True, index=True)
+    request_id = Column(Integer, ForeignKey("workflow_requests.id"), nullable=False, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    comment = Column(String, nullable=False)
+    commented_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    request = relationship("WorkflowRequest", back_populates="comments")
+    author = relationship("User")
+
+class WorkflowConfig(Base):
+    __tablename__ = "workflow_configs"
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    request_type = Column(Enum(WorkflowRequestTypeEnum), nullable=False)
+    approver_role = Column(Enum(RoleEnum), nullable=False, default=RoleEnum.company_admin)
+    require_reason = Column(Boolean, default=True)
+    allow_self_approve = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    company = relationship("Company")

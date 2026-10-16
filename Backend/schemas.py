@@ -838,3 +838,100 @@ class IssuesStatsOut(BaseModel):
     by_type: list[IssuesByTypeOut]
     by_severity: list[IssuesBySeverityOut]
 
+class WorkflowRequestCreate(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    request_type: str  # WorkflowRequestTypeEnum value
+    related_record_type: Optional[str] = None
+    related_record_id: Optional[int] = None
+    related_record_label: Optional[str] = None
+    current_values: Optional[dict] = None
+    requested_values: Optional[dict] = None
+    reason: str
+    priority: str = "Medium"
+
+class WorkflowCommentOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    id: int
+    comment: str
+    commented_by: int
+    author_name: Optional[str] = None
+    created_at: datetime
+
+class WorkflowHistoryOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    id: int
+    action: str
+    from_status: Optional[str] = None
+    to_status: Optional[str] = None
+    performed_by: int
+    performer_name: Optional[str] = None
+    note: Optional[str] = None
+    created_at: datetime
+
+class WorkflowRequestOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    id: int
+    request_id: str
+    company_id: int
+    request_type: str
+    requested_by: int
+    requester_name: Optional[str] = None
+    requester_email: Optional[str] = None
+    related_record_type: Optional[str] = None
+    related_record_id: Optional[int] = None
+    related_record_label: Optional[str] = None
+    current_values: Optional[dict] = None
+    requested_values: Optional[dict] = None
+    reason: str
+    priority: str
+    status: str
+    reviewed_by: Optional[int] = None
+    reviewer_name: Optional[str] = None
+    reviewed_at: Optional[datetime] = None
+    rejection_reason: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    history: list[WorkflowHistoryOut] = []
+    comments: list[WorkflowCommentOut] = []
+
+class WorkflowApproveRequest(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    comment: Optional[str] = None
+
+class WorkflowRejectRequest(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    rejection_reason: str
+    comment: Optional[str] = None
+
+class WorkflowAddComment(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    comment: str
+
+class WorkflowConfigOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    id: int
+    company_id: int
+    request_type: str
+    approver_role: str
+    require_reason: bool
+    allow_self_approve: bool
+    is_active: bool
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+class WorkflowConfigUpdate(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    approver_role: Optional[str] = None
+    require_reason: Optional[bool] = None
+    allow_self_approve: Optional[bool] = None
+    is_active: Optional[bool] = None
+
+class WorkflowStatsOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    total_requests: int
+    pending_approval: int
+    approved: int
+    rejected: int
+    cancelled: int
+    pending_growth: Optional[float] = None
+    total_growth: Optional[float] = None

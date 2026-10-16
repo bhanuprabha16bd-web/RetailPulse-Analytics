@@ -368,6 +368,15 @@ def migrate_import_schema():
             if name not in columns:
                 connection.execute(text(f"ALTER TABLE data_imports ADD COLUMN {name} {definition}"))
 
+def migrate_workflow_schema():
+    """Create workflow tables if they don't exist."""
+    from sqlalchemy import inspect as sa_inspect
+    inspector = sa_inspect(engine)
+    existing_tables = inspector.get_table_names()
+    
+    if "workflow_requests" not in existing_tables:
+        return
+
 def get_db():
     db = SessionLocal()
     try:

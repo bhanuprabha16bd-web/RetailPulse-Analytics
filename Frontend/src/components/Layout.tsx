@@ -21,7 +21,8 @@ import {
     Notifications as NotificationsIcon,
     NotificationsActive as NotificationsActiveIcon,
     Description as ReportsIcon,
-    VerifiedUser as VerifiedUserIcon
+    VerifiedUser as VerifiedUserIcon,
+    Approval as ApprovalIcon
 } from '@mui/icons-material';
 import { Badge } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
@@ -42,6 +43,7 @@ const menuItems = [
     { text: 'Reports', icon: <ReportsIcon />, path: '/reports' },
     { text: 'Demand Forecasting', icon: <AnalyticsIcon />, path: '/forecasts', salesOnly: true },
     { text: 'Data Import', icon: <UploadFileIcon />, path: '/data-import', adminOnly: true },
+    { text: 'Workflows & Approvals', icon: <ApprovalIcon />, path: '/workflows' },
     { text: 'Notifications', icon: <NotificationsIcon />, path: '/notifications' },
     { text: 'Audit Logs', icon: <HistoryIcon />, path: '/audit-logs', auditOnly: true },
     { text: 'Data Quality', icon: <VerifiedUserIcon />, path: '/data-quality', adminOnly: true },
